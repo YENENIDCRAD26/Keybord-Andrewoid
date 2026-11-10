@@ -1,0 +1,14 @@
+{
+  "appId": "com.samsung.notekeyboard.ar",
+  "appName": "كيبورد سامسونج نوت 10+",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}

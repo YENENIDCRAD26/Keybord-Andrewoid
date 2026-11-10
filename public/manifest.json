@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "لوحة مفاتيح الجوال الاحترافية - Smart Mobile Keyboard",
+  "short_name": "كيبورد الجوال",
+  "description": "لوحة مفاتيح أندرويد وسامسونج نوت 10+ متكاملة للجوال بارتفاع 6.3cm مع دعم كامل للخطوط العربية الـ 18، إدراج الصور والجداول والرموز واختصارات Word و Excel ومحطة التطبيقات.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

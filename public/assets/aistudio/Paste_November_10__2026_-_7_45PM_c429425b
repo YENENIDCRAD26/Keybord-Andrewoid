@@ -1,0 +1,1369 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, 
+  Minus, 
+  ChevronUp, 
+  ChevronDown, 
+  Globe, 
+  Delete, 
+  CornerDownLeft,
+  Keyboard as KeyboardIcon,
+  Smartphone,
+  Sparkles,
+  Bold,
+  Italic,
+  Underline,
+  RotateCcw,
+  RotateCw,
+  Save,
+  Printer,
+  AlignRight,
+  AlignCenter,
+  AlignLeft,
+  List,
+  ListOrdered,
+  DollarSign,
+  Percent,
+  Plus,
+  Trash2,
+  Strikethrough,
+  Table,
+  Palette,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Zap
+} from 'lucide-react';
+import { VirtualKeyboardState } from '../types';
+import { getPredictiveSuggestions, TextSuggestion } from '../utils/predictiveTextEngine';
+
+interface ArabVirtualKeyboardProps {
+  state: VirtualKeyboardState;
+  onUpdateState: (partial: Partial<VirtualKeyboardState>) => void;
+  onKeyPress: (char: string) => void;
+  onBackspace: () => void;
+  onEnter: () => void;
+  onTab: () => void;
+  onArrowKey?: (dir: 'up' | 'down' | 'left' | 'right') => void;
+  onCommand?: (cmd: string) => void;
+  onInsertText?: (text: string, replaceLength?: number) => void;
+  mode: 'word' | 'excel';
+}
+
+export const ArabVirtualKeyboard: React.FC<ArabVirtualKeyboardProps> = ({
+  state,
+  onUpdateState,
+  onKeyPress,
+  onBackspace,
+  onEnter,
+  onTab,
+  onArrowKey,
+  onCommand,
+  onInsertText,
+  mode
+}) => {
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [showExtraMenu, setShowExtraMenu] = useState(false);
+  const [showColorPalette, setShowColorPalette] = useState(false);
+  const [showShortcutsBar, setShowShortcutsBar] = useState(true);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  // Predictive Text State
+  const [predictiveBuffer, setPredictiveBuffer] = useState<string>('');
+  const [predictiveSuggestions, setPredictiveSuggestions] = useState<TextSuggestion[]>([]);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Reset predictive suggestions and buffer
+  const clearPredictions = () => {
+    setPredictiveBuffer('');
+    setPredictiveSuggestions([]);
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+  };
+
+  // Update suggestions whenever predictive buffer changes
+  useEffect(() => {
+    if (!predictiveBuffer.trim()) {
+      setPredictiveSuggestions([]);
+      return;
+    }
+
+    const suggestions = getPredictiveSuggestions(
+      predictiveBuffer,
+      state.language,
+      mode,
+      6
+    );
+    setPredictiveSuggestions(suggestions);
+
+    // Auto-inactivity timeout: dismiss transparent prediction bar after 7 seconds of inactivity
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(() => {
+      clearPredictions();
+    }, 7000);
+
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [predictiveBuffer, state.language, mode]);
+
+  if (!state.isOpen) return null;
+
+  const isNative = state.preferredInputMode === 'native';
+  const autoSwitchEnabled = state.autoSwitch !== false;
+  const layoutMode = state.layoutMode || 'standard'; // 'standard' (Windows 101) or 'rtl' (Arabic reading flow)
+  const numberType = state.numberType || 'eastern'; // 'eastern' (١٢٣) or 'western' (123)
+
+  const toggleInputMode = () => {
+    onUpdateState({ preferredInputMode: isNative ? 'virtual' : 'native' });
+  };
+
+  const toggleAutoSwitch = () => {
+    onUpdateState({ autoSwitch: !autoSwitchEnabled });
+  };
+
+  const toggleLanguage = () => {
+    clearPredictions();
+    onUpdateState({ language: state.language === 'ar' ? 'en' : 'ar' });
+  };
+
+  const toggleShift = () => {
+    onUpdateState({ shiftActive: !state.shiftActive });
+  };
+
+  const toggleAlt = () => {
+    onUpdateState({ altActive: !state.altActive });
+  };
+
+  const toggleCtrl = () => {
+    onUpdateState({ ctrlActive: !state.ctrlActive });
+  };
+
+  const toggleLayoutMode = () => {
+    onUpdateState({ layoutMode: layoutMode === 'standard' ? 'rtl' : 'standard' });
+  };
+
+  const toggleNumberType = () => {
+    onUpdateState({ numberType: numberType === 'eastern' ? 'western' : 'eastern' });
+  };
+
+  // Select a predictive suggestion
+  const handleSelectSuggestion = (suggestion: TextSuggestion) => {
+    const textToInsert = suggestion.text + (suggestion.text.endsWith(' ') || suggestion.text.endsWith('(') ? '' : ' ');
+    const replaceLen = predictiveBuffer.length;
+
+    if (onInsertText) {
+      onInsertText(textToInsert, replaceLen);
+    } else {
+      for (let i = 0; i < replaceLen; i++) {
+        onBackspace();
+      }
+      onKeyPress(textToInsert);
+    }
+
+    clearPredictions();
+  };
+
+  // Key click handler with predictive tracking and shortcut executions
+  const handleKeyClick = (char: string) => {
+    // Check Alt hotkeys
+    if (state.altActive) {
+      if (char === '=' || char === '+') {
+        onCommand?.('autoSum');
+        onUpdateState({ altActive: false });
+        clearPredictions();
+        return;
+      }
+    }
+
+    // Check Ctrl hotkeys
+    if (state.ctrlActive) {
+      const lower = char.toLowerCase();
+      if (lower === 'n' || char === 'ى') {
+        onCommand?.('new');
+      } else if (lower === 'o' || char === 'خ') {
+        onCommand?.('open');
+      } else if (lower === 's' || char === 'س') {
+        onCommand?.('save');
+      } else if (lower === 'p' || char === 'ح') {
+        onCommand?.('print');
+      } else if (lower === 'c' || char === 'ؤ') {
+        onCommand?.('copy');
+      } else if (lower === 'x' || char === 'ء') {
+        onCommand?.('cut');
+      } else if (lower === 'v' || char === 'ر') {
+        onCommand?.('paste');
+      } else if (lower === 'a' || char === 'ش') {
+        onCommand?.('selectAll');
+      } else if (lower === 'z' || char === 'ئ') {
+        onCommand?.('undo');
+      } else if (lower === 'y' || char === 'إ' || char === 'غ') {
+        onCommand?.('redo');
+      } else if (lower === 'f' || char === 'ب') {
+        onCommand?.('find');
+      } else if (lower === 'h' || char === 'ا' || char === 'أ') {
+        onCommand?.('replace');
+      } else if (lower === 'b' || char === 'لا') {
+        onCommand?.('bold');
+      } else if (lower === 'i' || char === 'ه') {
+        onCommand?.('italic');
+      } else if (lower === 'u' || char === 'ع') {
+        onCommand?.('underline');
+      } else if (lower === 'e' || char === 'ث') {
+        onCommand?.('alignCenter');
+      } else if (lower === 'r' || char === 'ق') {
+        onCommand?.('alignRight');
+      } else if (lower === 'l' || char === 'م') {
+        if (state.shiftActive) {
+          onCommand?.('toggleFilters');
+        } else {
+          onCommand?.('alignLeft');
+        }
+      } else if (lower === 'j' || char === 'ت') {
+        onCommand?.('justify');
+      } else if (char === ']' || char === 'د') {
+        onCommand?.('increaseFontSize');
+      } else if (char === '[' || char === 'ج') {
+        onCommand?.('decreaseFontSize');
+      } else if (char === '1' || char === '١') {
+        onCommand?.('lineSpacing1');
+      } else if (char === '2' || char === '٢') {
+        onCommand?.('lineSpacing2');
+      } else if (char === '5' || char === '٥') {
+        onCommand?.('lineSpacing1_5');
+      } else if (char === ';' || char === 'ك') {
+        onCommand?.('insertDate');
+      } else if (char === ':' || char === 'ط') {
+        onCommand?.('insertTime');
+      } else {
+        onKeyPress(char);
+      }
+      onUpdateState({ ctrlActive: false, shiftActive: false, altActive: false });
+      clearPredictions();
+      return;
+    }
+
+    // Normal typing
+    onKeyPress(char);
+
+    // Track predictive buffer
+    if (char === ' ' || char === '\n' || char === '\t') {
+      clearPredictions();
+    } else {
+      setPredictiveBuffer((prev) => prev + char);
+    }
+  };
+
+  const handleBackspaceKey = () => {
+    onBackspace();
+    setPredictiveBuffer((prev) => {
+      const next = prev.slice(0, -1);
+      if (!next) setPredictiveSuggestions([]);
+      return next;
+    });
+  };
+
+  const handleEnterKey = () => {
+    clearPredictions();
+    onEnter();
+  };
+
+  const handleTabKey = () => {
+    clearPredictions();
+    onTab();
+  };
+
+  // If user switched to phone's native keyboard, render a sleek floating dock switcher
+  if (isNative) {
+    return (
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 no-print select-none" dir="rtl">
+        <div className="bg-slate-900/95 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full shadow-2xl border border-slate-700 flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-2 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-300">
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-semibold">لوحة مفاتيح الهاتف نشطة 📱</span>
+          </div>
+
+          <div className="w-px h-3.5 bg-slate-700" />
+
+          <button
+            onClick={toggleInputMode}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold transition shadow-xs active:scale-95 cursor-pointer"
+          >
+            <KeyboardIcon className="w-3.5 h-3.5" />
+            <span>التبديل للكيبورد الملحق ⌨️</span>
+          </button>
+
+          <button
+            onClick={toggleAutoSwitch}
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition cursor-pointer ${
+              autoSwitchEnabled 
+                ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600' 
+                : 'bg-slate-800 text-slate-400 border-slate-600'
+            }`}
+            title="التبديل التلقائي عند التركيز أو الإدخال"
+          >
+            تبديل تلقائي: {autoSwitchEnabled ? 'مفعل ✓' : 'معطل'}
+          </button>
+
+          <button
+            onClick={() => onUpdateState({ isOpen: false })}
+            className="p-1 text-slate-400 hover:text-white rounded-full transition mr-1 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Quick Tashkeel & Diacritics
+  const tashkeelList = [
+    { label: 'َ فتحة', char: '\u064E' },
+    { label: 'ً تنوين فتح', char: '\u064B' },
+    { label: 'ُ ضمة', char: '\u064F' },
+    { label: 'ٌ تنوين ضم', char: '\u064C' },
+    { label: 'ِ كسرة', char: '\u0650' },
+    { label: 'ٍ تنوين كسر', char: '\u064D' },
+    { label: 'ْ سكون', char: '\u0652' },
+    { label: 'ّ شدة', char: '\u0651' },
+    { label: 'ـ تطويل', char: '\u0640' },
+  ];
+
+  // Colors Palette for direct coloring
+  const quickColors = [
+    { name: 'أسود', hex: '#000000' },
+    { name: 'أزرق', hex: '#0000FF' },
+    { name: 'أحمر', hex: '#FF0000' },
+    { name: 'أخضر', hex: '#008000' },
+    { name: 'بنفسجي', hex: '#800080' },
+    { name: 'وردي', hex: '#FF00FF' },
+    { name: 'سماوي', hex: '#00FFFF' },
+    { name: 'أصفر', hex: '#FFFF00' },
+    { name: 'كحلي', hex: '#000080' },
+    { name: 'رمادي', hex: '#808080' },
+  ];
+
+  // Number Row according to selected system
+  const easternNumbers = [
+    { char: 'ذ', shift: 'ّ', alt: '`' },
+    { char: '١', shift: '!', alt: '1' },
+    { char: '٢', shift: '@', alt: '2' },
+    { char: '٣', shift: '#', alt: '3' },
+    { char: '٤', shift: '$', alt: '4' },
+    { char: '٥', shift: '%', alt: '5' },
+    { char: '٦', shift: '^', alt: '6' },
+    { char: '٧', shift: '&', alt: '7' },
+    { char: '٨', shift: '*', alt: '8' },
+    { char: '٩', shift: ')', alt: '9' },
+    { char: '٠', shift: '(', alt: '0' },
+    { char: '-', shift: '_', alt: 'ـ' },
+    { char: '=', shift: '+', alt: '±' },
+  ];
+
+  const westernNumbers = [
+    { char: 'ذ', shift: 'ّ', alt: '`' },
+    { char: '1', shift: '!', alt: '١' },
+    { char: '2', shift: '@', alt: '٢' },
+    { char: '3', shift: '#', alt: '٣' },
+    { char: '4', shift: '$', alt: '٤' },
+    { char: '5', shift: '%', alt: '٥' },
+    { char: '6', shift: '^', alt: '٦' },
+    { char: '7', shift: '&', alt: '٧' },
+    { char: '8', shift: '*', alt: '٨' },
+    { char: '9', shift: '(', alt: '٩' },
+    { char: '0', shift: ')', alt: '٠' },
+    { char: '-', shift: '_', alt: 'ـ' },
+    { char: '=', shift: '+', alt: '±' },
+  ];
+
+  const numRow = numberType === 'eastern' ? easternNumbers : westernNumbers;
+
+  // Standard Arabic 101 row layout with shortcut annotations when Ctrl is pressed
+  const arRowStandard1 = [
+    { char: 'ض', shift: 'َ', ctrlHint: '' },
+    { char: 'ص', shift: 'ً', ctrlHint: '' },
+    { char: 'ث', shift: 'ُ', ctrlHint: 'توسيط' },
+    { char: 'ق', shift: 'ٌ', ctrlHint: 'يمين' },
+    { char: 'ف', shift: 'لإ', ctrlHint: '' },
+    { char: 'غ', shift: 'إ', ctrlHint: 'إعادة' },
+    { char: 'ع', shift: '‘', ctrlHint: 'تسطير' },
+    { char: 'ه', shift: '÷', ctrlHint: 'مائل' },
+    { char: 'خ', shift: '×', ctrlHint: 'فتح' },
+    { char: 'ح', shift: '؛', ctrlHint: 'طباعة' },
+    { char: 'ج', shift: '<', ctrlHint: 'تصغير' },
+    { char: 'د', shift: '>', ctrlHint: 'تكبير' },
+  ];
+
+  const arRowStandard2 = [
+    { char: 'ش', shift: 'ِ', ctrlHint: 'تحديد' },
+    { char: 'س', shift: 'ٍ', ctrlHint: 'حفظ' },
+    { char: 'ي', shift: ']', ctrlHint: '' },
+    { char: 'ب', shift: '[', ctrlHint: 'بحث' },
+    { char: 'ل', shift: 'لأ', ctrlHint: '' },
+    { char: 'ا', shift: 'أ', ctrlHint: 'استبدال' },
+    { char: 'ت', shift: 'ـ', ctrlHint: 'ضبط' },
+    { char: 'ن', shift: '،', ctrlHint: '' },
+    { char: 'م', shift: '/', ctrlHint: 'يسار' },
+    { char: 'ك', shift: ':', ctrlHint: 'تاريخ' },
+    { char: 'ط', shift: '"', ctrlHint: 'وقت' },
+  ];
+
+  const arRowStandard3 = [
+    { char: 'ئ', shift: '~', ctrlHint: 'تراجع' },
+    { char: 'ء', shift: 'ْ', ctrlHint: 'قص' },
+    { char: 'ؤ', shift: '}', ctrlHint: 'نسخ' },
+    { char: 'ر', shift: '{', ctrlHint: 'لصق' },
+    { char: 'لا', shift: 'لآ', ctrlHint: 'غامق' },
+    { char: 'ى', shift: 'آ', ctrlHint: 'جديد' },
+    { char: 'ة', shift: '\'', ctrlHint: '' },
+    { char: 'و', shift: ',', ctrlHint: '' },
+    { char: 'ز', shift: '.', ctrlHint: '' },
+    { char: 'ظ', shift: '؟', ctrlHint: '' },
+  ];
+
+  // RTL Direct Flow Order (if user selects RTL layout mode)
+  const arRowRTL1 = [...arRowStandard1].reverse();
+  const arRowRTL2 = [...arRowStandard2].reverse();
+  const arRowRTL3 = [...arRowStandard3].reverse();
+
+  const activeArRow1 = layoutMode === 'standard' ? arRowStandard1 : arRowRTL1;
+  const activeArRow2 = layoutMode === 'standard' ? arRowStandard2 : arRowRTL2;
+  const activeArRow3 = layoutMode === 'standard' ? arRowStandard3 : arRowRTL3;
+
+  // English QWERTY
+  const enRow1 = [
+    { char: 'q', shift: 'Q', ctrlHint: '' },
+    { char: 'w', shift: 'W', ctrlHint: '' },
+    { char: 'e', shift: 'E', ctrlHint: 'Center' },
+    { char: 'r', shift: 'R', ctrlHint: 'Right' },
+    { char: 't', shift: 'T', ctrlHint: '' },
+    { char: 'y', shift: 'Y', ctrlHint: 'Redo' },
+    { char: 'u', shift: 'U', ctrlHint: 'Underline' },
+    { char: 'i', shift: 'I', ctrlHint: 'Italic' },
+    { char: 'o', shift: 'O', ctrlHint: 'Open' },
+    { char: 'p', shift: 'P', ctrlHint: 'Print' },
+    { char: '[', shift: '{', ctrlHint: 'Font-' },
+    { char: ']', shift: '}', ctrlHint: 'Font+' },
+  ];
+
+  const enRow2 = [
+    { char: 'a', shift: 'A', ctrlHint: 'Select' },
+    { char: 's', shift: 'S', ctrlHint: 'Save' },
+    { char: 'd', shift: 'D', ctrlHint: '' },
+    { char: 'f', shift: 'F', ctrlHint: 'Find' },
+    { char: 'g', shift: 'G', ctrlHint: '' },
+    { char: 'h', shift: 'H', ctrlHint: 'Replace' },
+    { char: 'j', shift: 'J', ctrlHint: 'Justify' },
+    { char: 'k', shift: 'K', ctrlHint: '' },
+    { char: 'l', shift: 'L', ctrlHint: 'Left' },
+    { char: ';', shift: ':', ctrlHint: 'Date' },
+    { char: '\'', shift: '"', ctrlHint: '' },
+  ];
+
+  const enRow3 = [
+    { char: 'z', shift: 'Z', ctrlHint: 'Undo' },
+    { char: 'x', shift: 'X', ctrlHint: 'Cut' },
+    { char: 'c', shift: 'C', ctrlHint: 'Copy' },
+    { char: 'v', shift: 'V', ctrlHint: 'Paste' },
+    { char: 'b', shift: 'B', ctrlHint: 'Bold' },
+    { char: 'n', shift: 'N', ctrlHint: 'New' },
+    { char: 'm', shift: 'M', ctrlHint: '' },
+    { char: ',', shift: '<', ctrlHint: '' },
+    { char: '.', shift: '>', ctrlHint: '' },
+    { char: '/', shift: '?', ctrlHint: '' },
+  ];
+
+  const getChar = (item: any) => {
+    if (typeof item === 'string') {
+      if (state.capsActive || state.shiftActive) {
+        return item.toUpperCase();
+      }
+      return item;
+    }
+    if (state.shiftActive && item.shift) return item.shift;
+    if (state.altActive && item.alt) return item.alt;
+    if (state.capsActive && typeof item.char === 'string') {
+      return item.char.toUpperCase();
+    }
+    return item.char;
+  };
+
+  return (
+    <div 
+      className={`select-none no-print transition-all z-50 ${
+        state.isFloating 
+          ? 'fixed top-14 left-1/2 -translate-x-1/2 w-full max-w-4xl px-2 shadow-2xl' 
+          : 'fixed bottom-0 left-0 right-0 max-w-5xl mx-auto px-2 pb-1'
+      }`}
+      dir="ltr"
+    >
+      <div className="bg-slate-50/98 backdrop-blur-md rounded-t-2xl border border-slate-300 shadow-2xl overflow-hidden ring-1 ring-slate-900/10">
+        
+        {/* Top Header Bar */}
+        <div 
+          className="bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 border-b border-slate-300 px-2.5 flex items-center justify-between w-full select-none gap-1 overflow-x-auto scrollbar-none py-1.5"
+          dir="rtl"
+        >
+          {/* Title & Mode Indicator */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="w-5 h-5 rounded-md bg-blue-600 text-white flex items-center justify-center shadow-xs">
+              <KeyboardIcon className="w-3 h-3" />
+            </div>
+            <span className="text-[11px] font-black text-slate-800 shrink-0">
+              الكيبورد الملحق {mode === 'excel' ? '📊 إكسل' : '📝 وورد'}
+            </span>
+            <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-extrabold border border-blue-200 shadow-2xs">
+              {state.language === 'ar' ? 'العربية' : 'EN'}
+            </span>
+          </div>
+
+          {/* Controls & Mode Toggles */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Direct Text Color Button */}
+            <button
+              onClick={() => setShowColorPalette(!showColorPalette)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold border transition shadow-2xs cursor-pointer touch-manipulation ${
+                showColorPalette ? 'bg-blue-600 text-white border-blue-700 shadow-xs' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+              title="لوحة ألوان النص السريعة"
+            >
+              <Palette className="w-3 h-3 text-amber-500" />
+              <span>لون الخط</span>
+            </button>
+
+            {/* Layout Mode Toggle (Standard 101 vs RTL flow) */}
+            <button
+              onClick={toggleLayoutMode}
+              className="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[9px] font-bold shadow-2xs cursor-pointer touch-manipulation"
+              title="تبديل ترتيب الحروف (قياسي ويندوز 101 / تدفق يميني RTL)"
+            >
+              {layoutMode === 'standard' ? 'نسق: قياسي 101' : 'نسق: يميني RTL'}
+            </button>
+
+            {/* Number System Toggle (Eastern ١٢٣ vs Western 123) */}
+            <button
+              onClick={toggleNumberType}
+              className="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[9px] font-bold shadow-2xs cursor-pointer touch-manipulation"
+              title="تبديل نظام الأرقام (عربية مشرقية ١٢٣ / غربية 123)"
+            >
+              {numberType === 'eastern' ? 'أرقام: ١٢٣' : 'أرقام: 123'}
+            </button>
+
+            {/* Phone native keyboard switcher */}
+            <button
+              onClick={toggleInputMode}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[9px] font-bold border border-blue-300 transition shadow-2xs cursor-pointer touch-manipulation"
+              title="التبديل إلى كيبورد الهاتف اللمسي"
+            >
+              <Smartphone className="w-3 h-3 text-blue-600" />
+              <span>📱 هاتف</span>
+            </button>
+
+            {/* Extra Tools Drawer */}
+            <button
+              onClick={() => setShowExtraMenu(!showExtraMenu)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold border transition shadow-2xs cursor-pointer touch-manipulation ${
+                showExtraMenu ? 'bg-amber-100 text-amber-900 border-amber-400 font-black' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+              title="أدوات وتشكيل إضافية"
+            >
+              <Sparkles className="w-3 h-3 text-amber-600" />
+              <span>تشكيل {showExtraMenu ? '▲' : '▼'}</span>
+            </button>
+
+            {/* Direct Keyboard Shortcuts Toolbar Toggle */}
+            <button
+              onClick={() => setShowShortcutsBar(!showShortcutsBar)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold border transition shadow-2xs cursor-pointer touch-manipulation ${
+                showShortcutsBar ? 'bg-indigo-600 text-white border-indigo-700 font-bold' : 'bg-white hover:bg-slate-100 text-indigo-700 border-indigo-200'
+              }`}
+              title="إظهار / إخفاء شريط الاختصارات المباشرة"
+            >
+              <Zap className="w-3 h-3 text-amber-300" />
+              <span>اختصارات ⚡</span>
+            </button>
+
+            {/* Secrets & Keyboard Shortcuts Modal Button */}
+            <button
+              onClick={() => setShowShortcutsModal(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-[9px] font-bold border border-purple-300 transition shadow-2xs cursor-pointer touch-manipulation"
+              title="دليل خفايا وأسرار واختصارات الكيبورد الاحترافية 💡"
+            >
+              <Sparkles className="w-3 h-3 text-purple-600" />
+              <span>أسرار 💡</span>
+            </button>
+
+            {/* Minimize / Close */}
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-200 text-slate-600 transition cursor-pointer touch-manipulation"
+              title={isMinimized ? 'توسيع' : 'تصغير'}
+            >
+              {isMinimized ? <ChevronUp className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => onUpdateState({ isOpen: false })}
+              className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-rose-100 hover:text-rose-600 text-slate-600 transition cursor-pointer touch-manipulation"
+              title="إغلاق الكيبورد"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {!isMinimized && (
+          <div className="p-2 space-y-1.5 bg-slate-100/95 text-xs">
+
+            {/* =========================================================================
+                FEATURE 2: SMART TRANSPARENT PREDICTIVE TEXT BAR (شريط الاقتراحات الذكي والشفاف)
+                - Appears automatically when user types (predictiveSuggestions.length > 0)
+                - High-contrast, transparent glassmorphism design
+                - Disappears automatically after selecting or dismissing or empty buffer
+               ========================================================================= */}
+            {predictiveSuggestions.length > 0 && (
+              <div 
+                className="bg-white/85 backdrop-blur-md border border-indigo-300/80 rounded-xl p-1.5 shadow-md flex items-center justify-between gap-1.5 animate-in fade-in slide-in-from-bottom-2 select-none"
+                dir="rtl"
+              >
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1">
+                  <div className="flex items-center gap-1 text-indigo-900 font-extrabold text-[10px] pl-1 border-l border-indigo-200 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                    <span>اقتراحات ذكية:</span>
+                  </div>
+
+                  {predictiveSuggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                      className="px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer touch-manipulation shrink-0 flex items-center gap-1.5 border bg-white/95 hover:bg-indigo-50 border-indigo-200 text-slate-800 hover:text-indigo-900 hover:border-indigo-400"
+                      title={suggestion.label || suggestion.text}
+                    >
+                      {suggestion.type === 'phrase' && (
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-semibold border border-amber-200">
+                          ⚡ جملة
+                        </span>
+                      )}
+                      {suggestion.type === 'formula' && (
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                          ∑ دالة
+                        </span>
+                      )}
+                      <span className="font-semibold text-slate-900 tracking-wide">
+                        {suggestion.text}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Dismiss suggestion button */}
+                <button
+                  onClick={clearPredictions}
+                  className="w-6 h-6 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 transition cursor-pointer touch-manipulation shrink-0"
+                  title="تجاهل الاقتراحات وإغلاق الشريط"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            
+            {/* Quick Shortcuts Bar */}
+            {showShortcutsBar && (
+              <div className="bg-white/90 p-1 rounded-xl border border-indigo-200 shadow-xs flex items-center justify-between gap-1 animate-in fade-in" dir="rtl">
+                <div className="flex items-center gap-1 overflow-x-auto py-0.5 scrollbar-none text-[10px]">
+                  <span className="font-bold text-indigo-900 shrink-0 flex items-center gap-1 pl-1 border-l border-indigo-100">
+                    <span className="text-[11px]">⚡</span>
+                    <span>اختصارات:</span>
+                  </span>
+
+                  <button
+                    onClick={() => onCommand?.('save')}
+                    className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + S: حفظ المستند"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-indigo-200">Ctrl+S</span>
+                    <span>حفظ</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('bold')}
+                    className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + B: خط غامق"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-blue-200">Ctrl+B</span>
+                    <span className="font-black">غامق</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('italic')}
+                    className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + I: خط مائل"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-blue-200">Ctrl+I</span>
+                    <span className="italic">مائل</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('underline')}
+                    className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + U: خط مسطر"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-blue-200">Ctrl+U</span>
+                    <span className="underline">تسطير</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('undo')}
+                    className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + Z: تراجع"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-slate-300">Ctrl+Z</span>
+                    <span>تراجع</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('redo')}
+                    className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + Y: إعادة"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-slate-300">Ctrl+Y</span>
+                    <span>إعادة</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('copy')}
+                    className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + C: نسخ"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-slate-300">Ctrl+C</span>
+                    <span>نسخ</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('paste')}
+                    className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + V: لصق"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-slate-300">Ctrl+V</span>
+                    <span>لصق</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('selectAll')}
+                    className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + A: تحديد الكل"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-slate-300">Ctrl+A</span>
+                    <span>تحديد</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('find')}
+                    className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + F: بحث"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-slate-300">Ctrl+F</span>
+                    <span>بحث</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('replace')}
+                    className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + H: استبدال"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-slate-300">Ctrl+H</span>
+                    <span>استبدال</span>
+                  </button>
+
+                  <button
+                    onClick={() => onCommand?.('print')}
+                    className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                    title="Ctrl + P: طباعة"
+                  >
+                    <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-indigo-200">Ctrl+P</span>
+                    <span>طباعة</span>
+                  </button>
+
+                  {/* Excel Specific Quick Buttons */}
+                  {mode === 'excel' && (
+                    <>
+                      <div className="w-px h-3.5 bg-emerald-300 shrink-0" />
+                      <button
+                        onClick={() => onCommand?.('autoSum')}
+                        className="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                        title="Alt + =: جمع تلقائي"
+                      >
+                        <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-amber-300 text-amber-700">Alt+=</span>
+                        <span>جمع ∑</span>
+                      </button>
+                      <button
+                        onClick={() => onCommand?.('insertDate')}
+                        className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-lg font-bold shrink-0 transition active:scale-95 flex items-center gap-1 cursor-pointer touch-manipulation"
+                        title="Ctrl + ;: تاريخ اليوم"
+                      >
+                        <span className="font-mono font-bold text-[9px] bg-white px-1 rounded border border-emerald-300 text-emerald-700">Ctrl+;</span>
+                        <span>تاريخ اليوم</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowShortcutsBar(false)}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 px-1 shrink-0 cursor-pointer"
+                  title="إغلاق الشريط"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Quick Color Palette Strip */}
+            {showColorPalette && (
+              <div className="flex items-center justify-between gap-1 p-1 bg-white rounded-xl border border-blue-200 shadow-xs animate-in fade-in" dir="rtl">
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none">
+                  <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap">لون النص:</span>
+                  {quickColors.map((c, i) => (
+                    <button
+                      key={i}
+                      onClick={() => onCommand?.(`foreColor:${c.hex}`)}
+                      style={{ backgroundColor: c.hex }}
+                      title={c.name}
+                      className="w-5 h-5 rounded-md border border-black/20 hover:scale-110 active:scale-95 transition shadow-2xs cursor-pointer shrink-0 touch-manipulation"
+                    />
+                  ))}
+                  {mode === 'excel' && (
+                    <>
+                      <div className="w-px h-3 bg-slate-300 mx-1" />
+                      <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap">تعبئة الخلية:</span>
+                      {['#FFFFCC', '#E2EFDA', '#DDEBF7', '#FCE4D6', '#FFF2CC'].map((bg, i) => (
+                        <button
+                          key={i}
+                          onClick={() => onCommand?.(`bgColor:${bg}`)}
+                          style={{ backgroundColor: bg }}
+                          title={`تعبئة ${bg}`}
+                          className="w-5 h-5 rounded-md border border-black/20 hover:scale-110 active:scale-95 transition shadow-2xs cursor-pointer shrink-0 touch-manipulation"
+                        />
+                      ))}
+                    </>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowColorPalette(false)}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 px-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Extra Menu (Tashkeel & Formatting) */}
+            {showExtraMenu && (
+              <div className="bg-white p-2 rounded-xl border border-amber-300 shadow-md space-y-1.5 animate-in fade-in" dir="rtl">
+                <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+                  <span className="text-[10px] font-bold text-amber-900 shrink-0">تشكيل وحركات:</span>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {tashkeelList.map((t, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => onKeyPress(t.char)}
+                        className="px-2.5 py-1 bg-slate-50 hover:bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-slate-800 shadow-2xs transition active:scale-95 whitespace-nowrap cursor-pointer touch-manipulation"
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {mode === 'word' ? (
+                  <div className="flex items-center gap-1 flex-wrap pt-1 border-t border-slate-100">
+                    <span className="text-[10px] font-bold text-slate-600 shrink-0">تنسيق وورد:</span>
+                    <button onClick={() => onCommand?.('bold')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 font-bold text-slate-800 text-[10px]">B غامق</button>
+                    <button onClick={() => onCommand?.('italic')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 italic text-slate-800 text-[10px]">I مائل</button>
+                    <button onClick={() => onCommand?.('underline')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 underline text-slate-800 text-[10px]">U تسطير</button>
+                    <button onClick={() => onCommand?.('justifyRight')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">يمين</button>
+                    <button onClick={() => onCommand?.('justifyCenter')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">وسط</button>
+                    <button onClick={() => onCommand?.('justifyLeft')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">يسار</button>
+                    <button onClick={() => onCommand?.('insertUnorderedList')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">• قائمة</button>
+                    <button onClick={() => onCommand?.('insertOrderedList')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">1. رقمية</button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 flex-wrap pt-1 border-t border-slate-100">
+                    <span className="text-[10px] font-bold text-emerald-800 shrink-0">دوال إكسل:</span>
+                    <button onClick={() => onCommand?.('sum')} className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-[10px]">∑ جمع</button>
+                    <button onClick={() => onCommand?.('average')} className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-[10px]">متوسط</button>
+                    <button onClick={() => onCommand?.('count')} className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-[10px]">عدد</button>
+                    <button onClick={() => onCommand?.('insertRow')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">+ صف</button>
+                    <button onClick={() => onCommand?.('deleteRow')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">- صف</button>
+                    <button onClick={() => onCommand?.('insertCol')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">+ عمود</button>
+                    <button onClick={() => onCommand?.('deleteCol')} className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[10px]">- عمود</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* =========================================================================
+                FEATURE 1: HIGH CLARITY, CONTRAST & RESPONSIVE TACTILE KEYBOARD LAYOUT
+                - Crisp dark fonts on tactile white keys with 3D tactile borders
+                - Zero-delay touch response (touch-manipulation)
+                - Shortcut badges on keys when Ctrl/Alt active
+               ========================================================================= */}
+            <div className="space-y-1 bg-white p-2 rounded-2xl border border-slate-300 shadow-inner">
+              
+              {/* Row 0: Numbers & Backspace */}
+              <div className="flex gap-1 justify-center">
+                {numRow.map((item, i) => {
+                  const charDisplay = getChar(item);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleKeyClick(charDisplay)}
+                      className="flex-1 min-w-[24px] h-[38px] sm:h-[42px] bg-slate-50 hover:bg-blue-50 border border-slate-300 border-b-2 border-b-slate-400/80 rounded-lg text-sm sm:text-base font-bold text-slate-900 shadow-2xs active:translate-y-0.5 active:border-b active:bg-blue-200 transition-all cursor-pointer touch-manipulation flex flex-col items-center justify-center relative select-none"
+                    >
+                      <span className="leading-none">{charDisplay}</span>
+                      {item.shift && item.shift !== charDisplay && (
+                        <span className="absolute top-0.5 right-1 text-[8.5px] font-semibold text-slate-400 select-none">
+                          {item.shift}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={handleBackspaceKey}
+                  className="px-3 sm:px-4 h-[38px] sm:h-[42px] bg-rose-50 hover:bg-rose-100 border border-rose-300 border-b-2 border-b-rose-400 rounded-lg text-rose-700 font-bold flex items-center justify-center gap-1 shadow-2xs active:translate-y-0.5 active:border-b active:bg-rose-200 transition-all cursor-pointer touch-manipulation shrink-0 select-none"
+                  title="مسح (Backspace)"
+                >
+                  <Delete className="w-4 h-4" />
+                  <span className="text-[10px] hidden sm:inline">مسح</span>
+                </button>
+              </div>
+
+              {state.language === 'ar' ? (
+                <>
+                  {/* Arabic Row 1 */}
+                  <div className="flex gap-1 justify-center">
+                    <button
+                      onClick={handleTabKey}
+                      className="px-2.5 sm:px-3 h-[38px] sm:h-[42px] bg-slate-100 hover:bg-slate-200 border border-slate-300 border-b-2 border-b-slate-400/80 text-slate-800 rounded-lg text-xs font-bold shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b select-none flex items-center justify-center"
+                      title="مفتاح الجدولة (Tab)"
+                    >
+                      Tab ⇥
+                    </button>
+                    {activeArRow1.map((item, i) => {
+                      const charDisplay = getChar(item);
+                      const isCtrlHint = state.ctrlActive && item.ctrlHint;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleKeyClick(charDisplay)}
+                          className={`flex-1 min-w-[24px] h-[38px] sm:h-[42px] border rounded-lg text-sm sm:text-base font-bold shadow-2xs active:translate-y-0.5 active:border-b transition-all cursor-pointer touch-manipulation flex flex-col items-center justify-center relative select-none ${
+                            isCtrlHint
+                              ? 'bg-indigo-50 border-indigo-400 border-b-2 border-b-indigo-600 text-indigo-900 ring-1 ring-indigo-300 font-black'
+                              : 'bg-white hover:bg-blue-50 border-slate-300 border-b-2 border-b-slate-400/80 text-slate-900 active:bg-blue-100'
+                          }`}
+                        >
+                          <span className="leading-none">{charDisplay}</span>
+                          {isCtrlHint ? (
+                            <span className="absolute -top-1.5 bg-indigo-600 text-white text-[7.5px] px-1 rounded-full font-bold shadow-xs">
+                              {item.ctrlHint}
+                            </span>
+                          ) : (
+                            item.shift && item.shift !== charDisplay && (
+                              <span className="absolute top-0.5 right-1 text-[8.5px] font-semibold text-indigo-600/70 select-none">
+                                {item.shift}
+                              </span>
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Arabic Row 2 */}
+                  <div className="flex gap-1 justify-center">
+                    <button
+                      onClick={() => onUpdateState({ capsActive: !state.capsActive })}
+                      className={`px-2.5 sm:px-3 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b select-none flex items-center justify-center ${
+                        state.capsActive 
+                          ? 'bg-amber-500 text-white border-amber-600 border-b-amber-700 ring-2 ring-amber-300 shadow-md font-black' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                      }`}
+                      title="تثبيت الحروف الكبيرة (Caps Lock)"
+                    >
+                      Caps
+                    </button>
+                    {activeArRow2.map((item, i) => {
+                      const charDisplay = getChar(item);
+                      const isCtrlHint = state.ctrlActive && item.ctrlHint;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleKeyClick(charDisplay)}
+                          className={`flex-1 min-w-[24px] h-[38px] sm:h-[42px] border rounded-lg text-sm sm:text-base font-bold shadow-2xs active:translate-y-0.5 active:border-b transition-all cursor-pointer touch-manipulation flex flex-col items-center justify-center relative select-none ${
+                            isCtrlHint
+                              ? 'bg-indigo-50 border-indigo-400 border-b-2 border-b-indigo-600 text-indigo-900 ring-1 ring-indigo-300 font-black'
+                              : 'bg-white hover:bg-blue-50 border-slate-300 border-b-2 border-b-slate-400/80 text-slate-900 active:bg-blue-100'
+                          }`}
+                        >
+                          <span className="leading-none">{charDisplay}</span>
+                          {isCtrlHint ? (
+                            <span className="absolute -top-1.5 bg-indigo-600 text-white text-[7.5px] px-1 rounded-full font-bold shadow-xs">
+                              {item.ctrlHint}
+                            </span>
+                          ) : (
+                            item.shift && item.shift !== charDisplay && (
+                              <span className="absolute top-0.5 right-1 text-[8.5px] font-semibold text-indigo-600/70 select-none">
+                                {item.shift}
+                              </span>
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={handleEnterKey}
+                      className="px-3.5 sm:px-4 h-[38px] sm:h-[42px] bg-blue-600 hover:bg-blue-700 border border-blue-700 border-b-2 border-b-blue-900 text-white rounded-lg text-xs font-black flex items-center justify-center gap-1 shadow-2xs active:translate-y-0.5 active:border-b active:bg-blue-800 transition-all cursor-pointer touch-manipulation shrink-0 select-none"
+                      title="إدخال / سطر جديد (Enter)"
+                    >
+                      <CornerDownLeft className="w-4 h-4" />
+                      <span className="text-[10px] hidden sm:inline">إدخال</span>
+                    </button>
+                  </div>
+
+                  {/* Arabic Row 3 */}
+                  <div className="flex gap-1 justify-center">
+                    <button
+                      onClick={toggleShift}
+                      className={`px-3 sm:px-3.5 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b select-none flex items-center justify-center ${
+                        state.shiftActive 
+                          ? 'bg-blue-600 text-white border-blue-700 border-b-blue-900 ring-2 ring-blue-300 shadow-md font-black' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                      }`}
+                      title="تفعيل التشكيل والرموز العلوية (Shift)"
+                    >
+                      Shift ⇧
+                    </button>
+                    {activeArRow3.map((item, i) => {
+                      const charDisplay = getChar(item);
+                      const isCtrlHint = state.ctrlActive && item.ctrlHint;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleKeyClick(charDisplay)}
+                          className={`flex-1 min-w-[24px] h-[38px] sm:h-[42px] border rounded-lg text-sm sm:text-base font-bold shadow-2xs active:translate-y-0.5 active:border-b transition-all cursor-pointer touch-manipulation flex flex-col items-center justify-center relative select-none ${
+                            isCtrlHint
+                              ? 'bg-indigo-50 border-indigo-400 border-b-2 border-b-indigo-600 text-indigo-900 ring-1 ring-indigo-300 font-black'
+                              : 'bg-white hover:bg-blue-50 border-slate-300 border-b-2 border-b-slate-400/80 text-slate-900 active:bg-blue-100'
+                          }`}
+                        >
+                          <span className="leading-none">{charDisplay}</span>
+                          {isCtrlHint ? (
+                            <span className="absolute -top-1.5 bg-indigo-600 text-white text-[7.5px] px-1 rounded-full font-bold shadow-xs">
+                              {item.ctrlHint}
+                            </span>
+                          ) : (
+                            item.shift && item.shift !== charDisplay && (
+                              <span className="absolute top-0.5 right-1 text-[8.5px] font-semibold text-indigo-600/70 select-none">
+                                {item.shift}
+                              </span>
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={toggleShift}
+                      className={`px-3 sm:px-3.5 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b select-none flex items-center justify-center ${
+                        state.shiftActive 
+                          ? 'bg-blue-600 text-white border-blue-700 border-b-blue-900 ring-2 ring-blue-300 shadow-md font-black' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                      }`}
+                      title="Shift"
+                    >
+                      ⇧ Shift
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* English QWERTY Row 1 */}
+                  <div className="flex gap-1 justify-center">
+                    <button 
+                      onClick={handleTabKey} 
+                      className="px-2.5 sm:px-3 h-[38px] sm:h-[42px] bg-slate-100 hover:bg-slate-200 border border-slate-300 border-b-2 border-b-slate-400/80 text-slate-800 rounded-lg text-xs font-bold shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b"
+                    >
+                      Tab ⇥
+                    </button>
+                    {enRow1.map((item, i) => {
+                      const charDisplay = getChar(item);
+                      const isCtrlHint = state.ctrlActive && item.ctrlHint;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleKeyClick(charDisplay)}
+                          className={`flex-1 min-w-[24px] h-[38px] sm:h-[42px] border rounded-lg text-sm sm:text-base font-bold shadow-2xs active:translate-y-0.5 active:border-b transition-all cursor-pointer touch-manipulation flex flex-col items-center justify-center relative select-none ${
+                            isCtrlHint
+                              ? 'bg-indigo-50 border-indigo-400 border-b-2 border-b-indigo-600 text-indigo-900 ring-1 ring-indigo-300 font-black'
+                              : 'bg-white hover:bg-blue-50 border-slate-300 border-b-2 border-b-slate-400/80 text-slate-900 active:bg-blue-100'
+                          }`}
+                        >
+                          <span className="leading-none">{charDisplay}</span>
+                          {isCtrlHint && (
+                            <span className="absolute -top-1.5 bg-indigo-600 text-white text-[7.5px] px-1 rounded-full font-bold shadow-xs">
+                              {item.ctrlHint}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* English QWERTY Row 2 */}
+                  <div className="flex gap-1 justify-center">
+                    <button
+                      onClick={() => onUpdateState({ capsActive: !state.capsActive })}
+                      className={`px-2.5 sm:px-3 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b select-none flex items-center justify-center ${
+                        state.capsActive 
+                          ? 'bg-amber-500 text-white border-amber-600 border-b-amber-700 ring-2 ring-amber-300 shadow-md font-black' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                      }`}
+                    >
+                      Caps
+                    </button>
+                    {enRow2.map((item, i) => {
+                      const charDisplay = getChar(item);
+                      const isCtrlHint = state.ctrlActive && item.ctrlHint;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleKeyClick(charDisplay)}
+                          className={`flex-1 min-w-[24px] h-[38px] sm:h-[42px] border rounded-lg text-sm sm:text-base font-bold shadow-2xs active:translate-y-0.5 active:border-b transition-all cursor-pointer touch-manipulation flex flex-col items-center justify-center relative select-none ${
+                            isCtrlHint
+                              ? 'bg-indigo-50 border-indigo-400 border-b-2 border-b-indigo-600 text-indigo-900 ring-1 ring-indigo-300 font-black'
+                              : 'bg-white hover:bg-blue-50 border-slate-300 border-b-2 border-b-slate-400/80 text-slate-900 active:bg-blue-100'
+                          }`}
+                        >
+                          <span className="leading-none">{charDisplay}</span>
+                          {isCtrlHint && (
+                            <span className="absolute -top-1.5 bg-indigo-600 text-white text-[7.5px] px-1 rounded-full font-bold shadow-xs">
+                              {item.ctrlHint}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={handleEnterKey}
+                      className="px-3.5 sm:px-4 h-[38px] sm:h-[42px] bg-blue-600 hover:bg-blue-700 border border-blue-700 border-b-2 border-b-blue-900 text-white rounded-lg text-xs font-black flex items-center justify-center gap-1 shadow-2xs active:translate-y-0.5 active:border-b active:bg-blue-800 transition-all cursor-pointer touch-manipulation shrink-0 select-none"
+                    >
+                      <CornerDownLeft className="w-4 h-4" />
+                      <span className="text-[10px] hidden sm:inline">Enter</span>
+                    </button>
+                  </div>
+
+                  {/* English QWERTY Row 3 */}
+                  <div className="flex gap-1 justify-center">
+                    <button
+                      onClick={toggleShift}
+                      className={`px-3 sm:px-3.5 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b select-none flex items-center justify-center ${
+                        state.shiftActive 
+                          ? 'bg-blue-600 text-white border-blue-700 border-b-blue-900 ring-2 ring-blue-300 shadow-md font-black' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                      }`}
+                    >
+                      Shift ⇧
+                    </button>
+                    {enRow3.map((item, i) => {
+                      const charDisplay = getChar(item);
+                      const isCtrlHint = state.ctrlActive && item.ctrlHint;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleKeyClick(charDisplay)}
+                          className={`flex-1 min-w-[24px] h-[38px] sm:h-[42px] border rounded-lg text-sm sm:text-base font-bold shadow-2xs active:translate-y-0.5 active:border-b transition-all cursor-pointer touch-manipulation flex flex-col items-center justify-center relative select-none ${
+                            isCtrlHint
+                              ? 'bg-indigo-50 border-indigo-400 border-b-2 border-b-indigo-600 text-indigo-900 ring-1 ring-indigo-300 font-black'
+                              : 'bg-white hover:bg-blue-50 border-slate-300 border-b-2 border-b-slate-400/80 text-slate-900 active:bg-blue-100'
+                          }`}
+                        >
+                          <span className="leading-none">{charDisplay}</span>
+                          {isCtrlHint && (
+                            <span className="absolute -top-1.5 bg-indigo-600 text-white text-[7.5px] px-1 rounded-full font-bold shadow-xs">
+                              {item.ctrlHint}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={toggleShift}
+                      className={`px-3 sm:px-3.5 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs shrink-0 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b select-none flex items-center justify-center ${
+                        state.shiftActive 
+                          ? 'bg-blue-600 text-white border-blue-700 border-b-blue-900 ring-2 ring-blue-300 shadow-md font-black' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                      }`}
+                    >
+                      ⇧ Shift
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Bottom Control & Navigation Row */}
+              <div className="flex gap-1 pt-1 justify-center items-center">
+                {/* Ctrl Key */}
+                <button
+                  onClick={toggleCtrl}
+                  className={`px-3 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b flex items-center justify-center transition-all ${
+                    state.ctrlActive 
+                      ? 'bg-indigo-600 text-white border-indigo-700 border-b-indigo-900 ring-2 ring-indigo-400 shadow-md font-black' 
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                  }`}
+                  title="مفتاح التحكم بالاختصارات (Ctrl)"
+                >
+                  Ctrl {state.ctrlActive && '✓'}
+                </button>
+
+                {/* Alt Key */}
+                <button
+                  onClick={toggleAlt}
+                  className={`px-3 h-[38px] sm:h-[42px] rounded-lg text-xs font-bold border border-b-2 shadow-2xs cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b flex items-center justify-center transition-all ${
+                    state.altActive 
+                      ? 'bg-purple-600 text-white border-purple-700 border-b-purple-900 ring-2 ring-purple-400 shadow-md font-black' 
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 border-b-slate-400/80'
+                  }`}
+                  title="مفتاح الأوامر البديلة (Alt)"
+                >
+                  Alt {state.altActive && '✓'}
+                </button>
+
+                {/* Language Switcher */}
+                <button
+                  onClick={toggleLanguage}
+                  className="px-3 h-[38px] sm:h-[42px] bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 border-b-2 border-b-emerald-500 text-emerald-900 rounded-lg text-xs font-black flex items-center gap-1 cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b shadow-2xs transition-all"
+                  title="تبديل اللغة (عربي / English)"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>{state.language === 'ar' ? 'EN' : 'عربي'}</span>
+                </button>
+
+                {/* Spacebar */}
+                <button
+                  onClick={() => handleKeyClick(' ')}
+                  className="flex-[4] h-[38px] sm:h-[42px] bg-slate-50 hover:bg-slate-100 border border-slate-300 border-b-2 border-b-slate-400/80 rounded-lg text-xs font-bold text-slate-500 shadow-2xs active:translate-y-0.5 active:border-b active:bg-slate-200 transition-all cursor-pointer touch-manipulation flex items-center justify-center select-none"
+                  title="مسافة (Space)"
+                >
+                  <span className="text-slate-400 font-mono tracking-widest text-sm">␣ مسافة</span>
+                </button>
+
+                {/* Navigation Arrow Keys Cluster (← ↑ ↓ →) */}
+                <div className="flex items-center gap-0.5 bg-slate-100 p-1 rounded-xl border border-slate-300 border-b-2 border-b-slate-400/80 shrink-0">
+                  <button
+                    onClick={() => onArrowKey ? onArrowKey('right') : onKeyPress('→')}
+                    className="w-8 h-[34px] flex items-center justify-center bg-white hover:bg-blue-50 border border-slate-300 border-b-2 border-b-slate-400/80 rounded-lg text-slate-800 shadow-2xs cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b active:bg-blue-100 transition-all"
+                    title="يمين (Right Arrow)"
+                  >
+                    <ArrowRight className="w-4 h-4 text-slate-800" />
+                  </button>
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      onClick={() => onArrowKey ? onArrowKey('up') : onKeyPress('↑')}
+                      className="w-8 h-[16px] flex items-center justify-center bg-white hover:bg-blue-50 border border-slate-300 border-b-2 border-b-slate-400/80 rounded text-slate-800 shadow-2xs cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b active:bg-blue-100 transition-all"
+                      title="أعلى (Up Arrow)"
+                    >
+                      <ArrowUp className="w-3 h-3 text-slate-800" />
+                    </button>
+                    <button
+                      onClick={() => onArrowKey ? onArrowKey('down') : onKeyPress('↓')}
+                      className="w-8 h-[16px] flex items-center justify-center bg-white hover:bg-blue-50 border border-slate-300 border-b-2 border-b-slate-400/80 rounded text-slate-800 shadow-2xs cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b active:bg-blue-100 transition-all"
+                      title="أسفل (Down Arrow)"
+                    >
+                      <ArrowDown className="w-3 h-3 text-slate-800" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => onArrowKey ? onArrowKey('left') : onKeyPress('←')}
+                    className="w-8 h-[34px] flex items-center justify-center bg-white hover:bg-blue-50 border border-slate-300 border-b-2 border-b-slate-400/80 rounded-lg text-slate-800 shadow-2xs cursor-pointer touch-manipulation active:translate-y-0.5 active:border-b active:bg-blue-100 transition-all"
+                    title="يسار (Left Arrow)"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-slate-800" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Secrets & Keyboard Shortcuts Modal Dialog */}
+      {showShortcutsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 z-[99999] animate-in fade-in select-none" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-300 w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-300" />
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base">خفايا وأسرار واختصارات الكيبورد الاحترافية 💡</h3>
+                  <p className="text-[10px] text-purple-200">دليلك الشامل لجميع اختصارات لوحة المفاتيح الذكية للتحكم السريع</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowShortcutsModal(false)}
+                className="p-1.5 hover:bg-white/20 rounded-full transition text-white/90 cursor-pointer touch-manipulation"
+                title="إغلاق"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs text-slate-700 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {[
+                  { key: 'Ctrl + N', name: 'مستند / مصنف جديد', desc: 'إنشاء صفحة بيضاء فارغة جديدة فوراً' },
+                  { key: 'Ctrl + O', name: 'فتح ملف', desc: 'استيراد مستند Word أو جدول Excel' },
+                  { key: 'Ctrl + S', name: 'حفظ المستند', desc: 'حفظ التغييرات وتحديث النسخة الحالية' },
+                  { key: 'Ctrl + P', name: 'طباعة وتصدير', desc: 'فتح نافذة المعاينة والطباعة المباشرة' },
+                  { key: 'Ctrl + C', name: 'نسخ', desc: 'نسخ النص أو الخلايا المحددة للحافظة' },
+                  { key: 'Ctrl + V', name: 'لصق', desc: 'لصق المحتوى من الحافظة' },
+                  { key: 'Ctrl + Z', name: 'تراجع (Undo)', desc: 'التراجع عن آخر إجراء قمت به' },
+                  { key: 'Ctrl + Y', name: 'إعادة (Redo)', desc: 'إعادة الإجراء المتراجع عنه' },
+                  { key: 'Ctrl + B', name: 'خط عريض (Bold)', desc: 'تفعيل أو إلغاء الخط العريض' },
+                  { key: 'Ctrl + I', name: 'خط مائل (Italic)', desc: 'تفعيل أو إلغاء الخط المائل' },
+                  { key: 'Ctrl + U', name: 'خط مسطر (Underline)', desc: 'إضافة خط تحت النص المحدد' },
+                  { key: 'Ctrl + A', name: 'تحديد الكل', desc: 'تحديد كافة النصوص أو محتوى الجدول' },
+                  { key: 'Alt + =', name: 'جمع تلقائي (Excel)', desc: 'حساب مجموع الخلايا تلقائياً' },
+                  { key: 'F7', name: 'مدقق الإملاء العربي', desc: 'فحص وتصحيح الأخطاء الإملائية' },
+                ].map((item, idx) => (
+                  <div key={idx} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex flex-col gap-1 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900">{item.name}</span>
+                      <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-mono font-bold text-[10px] border border-purple-200">{item.key}</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500">{item.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setShowShortcutsModal(false)}
+                className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer touch-manipulation"
+              >
+                فهمت، إغلاق الدليل
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

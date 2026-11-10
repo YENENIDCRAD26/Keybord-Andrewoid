@@ -1,11 +1,53 @@
-<div align="center">
+# لوحة مفاتيح الجوال الاحترافية - سامسونج نوت 10+ (Samsung Note 10+ Arabic Keyboard)
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+تطبيق لوحة مفاتيح عربية مادية وهجينة متطورة متوافقة بنسبة 100% مع هاتف **Samsung Galaxy Note 10+** ونظام One UI، بأبعاد ملحقة فعلية دقيقة (ارتفاع 6.3 سم).
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 🚀 المميزات الرئيسية
+- ⌨️ **أبعاد دقيقة لهاتف سامسونج نوت 10+**: ارتفاع ملحق 6.3 سم مع تشغيل كامل لمساحة الشاشة المتبقية.
+- 🔤 **شريط التشكيل والحركات الكامل**: (َ ً ُ ٌ ِ ٍ ْ ّ ـ) في شريط مستقل وبارز فوق صف الأرقام مع استجابة لمسية وصوتية.
+- 📊 **اختصارات برامج Word و Excel المكتبية الكاملة**:
+  - `Ctrl + B` (عريض)، `Ctrl + I` (مائل)، `Ctrl + U` (تسطير)، `Ctrl + K` (ارتباط).
+  - `Alt + =` (جمع تلقائي $\sum$ لبرنامج إكسل).
+  - `F4` لتثبيت المراجع والخلايا `$A$1`.
+  - `Ctrl + C`, `Ctrl + V`, `Ctrl + X`, `Ctrl + Z`, `Ctrl + Y`.
+- 📲 **محطة التطبيقات ومستندات العمل (8 تطبيقات مدمجة)**:
+  - واتساب (WhatsApp)
+  - ملاحظات سامسونج الذكية (Samsung Notes)
+  - محرر مستندات Word
+  - جداول بيانات Excel
+  - تيليجرام (Telegram)
+  - رسائل SMS
+  - متصفح الإنترنت والبحث السريع
+  - بريد سامسونج الإلكتروني (Samsung Email)
+- ⚡ **وضع التوافق كلوحة أساسية (Universal IME)**: التتبع التلقائي لأي حقل نصي نشط.
+- 🖋️ **18 خطاً عربياً أصيلاً**: النسخ، الرقعة، الكوفي، الثلث، الديواني، الفارسي، الأميري، الجزيرة، وغيرها مع تصدير مباشر إلى PDF و JPG بدقة عالية.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+---
 
-</div>
+## 📦 تحميل وتثبيت حزمة أندرويد (APK)
+
+### الطريقة 1: عبر إجراءات GitHub Actions التلقائية
+1. انتقل إلى تبويب **الإجراءات (Actions)** في هذا المستودع.
+2. اختر أحدث عملية تشغيل لـ **Build Samsung Keyboard APK**.
+3. قم بتحميل الملف من قسم **Artifacts** باسم `Samsung-Note10-Arabic-Keyboard-APK`.
+4. أو انتقل إلى قسم **Releases** لتحميل `Samsung-Note10-Arabic-Keyboard.apk` مباشرة على هاتفك وتثبيته.
+
+### الطريقة 2: عبر PWABuilder السريع
+1. افتح موقع [PWABuilder](https://www.pwabuilder.com).
+2. الصق رابط التطبيق.
+3. اضغط **Generate Android Package (APK)** لتنزيل حزمة APK موقعة وجاهزة لهواتف سامسونج.
+
+---
+
+## 🛠️ التشغيل والتطوير المحلي
+```bash
+npm install
+npm run dev
+```
+
+للبناء النهائي:
+```bash
+npm run build
+```
