@@ -5,12 +5,10 @@
         android:label="@string/keyboard_name"
         android:imeSubtypeLocale="ar"
         android:imeSubtypeMode="keyboard"
-        android:supportsSwitchToNextInputMethod="true"
         android:imeSubtypeExtraValue="KeyboardLayoutSet=arabic" />
     <subtype
         android:label="English (US)"
         android:imeSubtypeLocale="en_US"
         android:imeSubtypeMode="keyboard"
-        android:supportsSwitchToNextInputMethod="true"
         android:imeSubtypeExtraValue="KeyboardLayoutSet=qwerty" />
 </input-method>
