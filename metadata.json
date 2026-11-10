@@ -1,0 +1,6 @@
+{
+  "name": "لوحة مفاتيح الجوال الاحترافية - Smart Mobile Keyboard",
+  "description": "لوحة مفاتيح أندرويد وسامسونج نوت 10+ متكاملة للجوال مع دعم كامل للخطوط العربية الـ 18، إدراج الصور والجداول والرموز والإيموجي، والتصدير والحفظ بصيغة JPG و PDF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
