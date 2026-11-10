@@ -237,75 +237,96 @@ export const Keyboard: React.FC<KeyboardProps> = ({
       }
     }
 
-    // 3. Ctrl combinations (Common Word & Excel)
+    // 3. Ctrl combinations (Common Word & Excel - Bilingual Arabic & English letter mappings)
     if (isCtrl) {
-      switch (key.code) {
-        case 'KeyN':
-          onShortcut?.('new_doc');
-          setIsCtrl(false);
-          return;
-        case 'KeyO':
-          onShortcut?.('open_file');
-          setIsCtrl(false);
-          return;
-        case 'KeyS':
-          onShortcut?.('save_doc');
-          setIsCtrl(false);
-          return;
-        case 'KeyP':
-          onShortcut?.('print_doc');
-          setIsCtrl(false);
-          return;
-        case 'KeyC':
-          onShortcut?.('copy_text');
-          setIsCtrl(false);
-          return;
-        case 'KeyX':
-          onShortcut?.('cut_text');
-          setIsCtrl(false);
-          return;
-        case 'KeyV':
-          onShortcut?.('paste_text');
-          setIsCtrl(false);
-          return;
-        case 'KeyA':
-          onShortcut?.('select_all');
-          setIsCtrl(false);
-          return;
-        case 'KeyZ':
-          onShortcut?.('undo');
-          setIsCtrl(false);
-          return;
-        case 'KeyY':
-          onShortcut?.('redo');
-          setIsCtrl(false);
-          return;
-        case 'KeyF':
-          onShortcut?.('search');
-          setIsCtrl(false);
-          return;
-        case 'KeyH':
-          onShortcut?.('replace');
-          setIsCtrl(false);
-          return;
-        case 'KeyB':
-          onShortcut?.('bold');
-          setIsCtrl(false);
-          return;
-        case 'KeyI':
-          onShortcut?.('italic');
-          setIsCtrl(false);
-          return;
-        case 'KeyU':
-          onShortcut?.('underline');
-          setIsCtrl(false);
-          return;
-        case 'Semicolon':
-          onShortcut?.('insert_date');
-          setIsCtrl(false);
-          return;
-        default:
-          break;
+      const char = key.label || '';
+      const lower = char.toLowerCase();
+      const code = key.code;
+
+      if (code === 'KeyN' || lower === 'n' || char === 'ى') {
+        onShortcut?.('new_doc');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyO' || lower === 'o' || char === 'خ') {
+        onShortcut?.('open_file');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyS' || lower === 's' || char === 'س') {
+        onShortcut?.('save_doc');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyP' || lower === 'p' || char === 'ح') {
+        onShortcut?.('print_doc');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyC' || lower === 'c' || char === 'ؤ') {
+        onShortcut?.('copy_text');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyX' || lower === 'x' || char === 'ء') {
+        onShortcut?.('cut_text');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyV' || lower === 'v' || char === 'ر') {
+        onShortcut?.('paste_text');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyA' || lower === 'a' || char === 'ش') {
+        onShortcut?.('select_all');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyZ' || lower === 'z' || char === 'ئ') {
+        onShortcut?.('undo');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyY' || lower === 'y' || char === 'إ' || char === 'غ') {
+        onShortcut?.('redo');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyF' || lower === 'f' || char === 'ب') {
+        onShortcut?.('search');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyH' || lower === 'h' || char === 'ا' || char === 'أ') {
+        onShortcut?.('replace');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyB' || lower === 'b' || char === 'لا') {
+        onShortcut?.('bold');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyI' || lower === 'i' || char === 'ه') {
+        onShortcut?.('italic');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyU' || lower === 'u' || char === 'ع') {
+        onShortcut?.('underline');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'KeyK' || lower === 'k' || char === 'ن') {
+        onShortcut?.('insert_link');
+        setIsCtrl(false);
+        return;
+      }
+      if (code === 'Semicolon' || char === ';' || char === 'ك' || char === '؛') {
+        onShortcut?.('insert_date');
+        setIsCtrl(false);
+        return;
       }
     }
 

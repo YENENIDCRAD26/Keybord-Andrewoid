@@ -523,8 +523,22 @@ export default function App() {
         break;
       }
 
+      case 'insert_link': {
+        // Ctrl + K (ن): إدراج ارتباط تشعبي
+        handleKeyPress(' [رابط](https://) ');
+        triggerHud('Ctrl + K', '🔗 إدراج ارتباط تشعبي (Hyperlink)');
+        break;
+      }
+
+      case 'repeat_or_absolute': {
+        // F4: تثبيت مراجع الخلايا $A$1 أو تكرار الإجراء الأخير
+        handleKeyPress('$A$1');
+        triggerHud('F4', '🔒 تثبيت مرجع الخلية ($A$1)');
+        break;
+      }
+
       case 'insert_date': {
-        // Ctrl + ; : إدراج تاريخ اليوم
+        // Ctrl + ; (ك): إدراج تاريخ اليوم
         const dateStr = getFormattedCurrentDate();
         handleKeyPress(` ${dateStr} `);
         triggerHud('Ctrl + ;', `📅 تم إدراج التاريخ الحالي: ${dateStr}`);
@@ -532,7 +546,7 @@ export default function App() {
       }
 
       case 'insert_time': {
-        // Ctrl + Shift + : : إدراج الوقت الحالي
+        // Ctrl + Shift + : (؛): إدراج الوقت الحالي
         const timeStr = getFormattedCurrentTime();
         handleKeyPress(` ${timeStr} `);
         triggerHud('Ctrl + Shift + :', `⏰ تم إدراج الوقت الحالي: ${timeStr}`);
@@ -560,6 +574,11 @@ export default function App() {
         handleExecuteShortcut('spell_check');
         return;
       }
+      if (e.key === 'F4') {
+        e.preventDefault();
+        handleExecuteShortcut('repeat_or_absolute');
+        return;
+      }
       if (e.key === 'F2') {
         e.preventDefault();
         handleExecuteShortcut('edit_cell');
@@ -571,27 +590,31 @@ export default function App() {
         return;
       }
       if (e.ctrlKey || e.metaKey) {
-        if (e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+        if (e.shiftKey && (e.key === 'L' || e.key === 'l' || e.key === 'م')) {
           e.preventDefault();
           handleExecuteShortcut('toggle_filters');
           return;
         }
-        if (e.shiftKey && (e.key === ':' || e.key === ';')) {
+        if (e.shiftKey && (e.key === ':' || e.key === ';' || e.key === '؛')) {
           e.preventDefault();
           handleExecuteShortcut('insert_time');
           return;
         }
-        if (e.key === ';') {
+        if (e.key === ';' || e.key === 'ك') {
           e.preventDefault();
           handleExecuteShortcut('insert_date');
           return;
         }
         const key = e.key.toLowerCase();
         const map: Record<string, string> = {
+          // English keys
           n: 'new_doc',
           o: 'open_file',
           s: 'save_doc',
           p: 'print_doc',
+          c: 'copy_text',
+          x: 'cut_text',
+          v: 'paste_text',
           a: 'select_all',
           z: 'undo',
           y: 'redo',
@@ -600,6 +623,27 @@ export default function App() {
           b: 'bold',
           i: 'italic',
           u: 'underline',
+          k: 'insert_link',
+          // Arabic equivalents (Direct keys)
+          'ى': 'new_doc',
+          'خ': 'open_file',
+          'س': 'save_doc',
+          'ح': 'print_doc',
+          'ؤ': 'copy_text',
+          'ء': 'cut_text',
+          'ر': 'paste_text',
+          'ش': 'select_all',
+          'ئ': 'undo',
+          'إ': 'redo',
+          'غ': 'redo',
+          'ب': 'search',
+          'ا': 'replace',
+          'أ': 'replace',
+          'لا': 'bold',
+          'ه': 'italic',
+          'ع': 'underline',
+          'ن': 'insert_link',
+          'ك': 'insert_date',
         };
         if (map[key]) {
           e.preventDefault();

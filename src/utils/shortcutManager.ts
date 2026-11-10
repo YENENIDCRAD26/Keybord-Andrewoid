@@ -176,6 +176,22 @@ export const SHORTCUTS_LIST: ShortcutDefinition[] = [
     icon: '⏰',
   },
   {
+    id: 'insert_link',
+    keys: 'Ctrl + K / Ctrl + ن',
+    titleArabic: 'إدراج ارتباط تشعبي',
+    descriptionArabic: 'إدراج رابط موقع أو ارتباط تشعبي في النص',
+    category: 'word',
+    icon: '🔗',
+  },
+  {
+    id: 'repeat_or_absolute',
+    keys: 'F4',
+    titleArabic: 'تثبيت مراجع الخلايا ($A$1)',
+    descriptionArabic: 'تثبيت مراجع الخلايا بصيغة مطلقة في إكسل أو تكرار الإجراء الأخير في وورد',
+    category: 'excel',
+    icon: '🔒',
+  },
+  {
     id: 'auto_sum',
     keys: 'Alt + =',
     titleArabic: 'دالة التجميع التلقائي (AutoSum)',

@@ -69,3 +69,16 @@ export type TargetAppType =
   | 'systemSettings';
 
 export type ActiveKeyboardType = 'attached' | 'native';
+
+export interface VirtualKeyboardState {
+  isOpen: boolean;
+  preferredInputMode?: 'virtual' | 'native';
+  autoSwitch?: boolean;
+  language: 'ar' | 'en';
+  shiftActive?: boolean;
+  altActive?: boolean;
+  ctrlActive?: boolean;
+  layoutMode?: 'standard' | 'rtl';
+  numberType?: 'eastern' | 'western';
+  isMinimized?: boolean;
+}
