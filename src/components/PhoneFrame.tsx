@@ -95,7 +95,7 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
         </header>
 
         {/* Content */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="flex-1 flex flex-col justify-end overflow-hidden relative bg-[#1a1c1e]">
           {children}
         </div>
       </div>
@@ -121,7 +121,27 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
             isLandscape ? 'rounded-[26px]' : 'rounded-[34px]'
           }`}
         >
-          {/* Phone Inner Workspace (Keyboard Focused - Exactly 8 Keyboard Rows) */}
+          {/* Android Status Bar (Samsung Galaxy Note 10+ One UI) */}
+          <div className="h-6 sm:h-7 bg-slate-950 text-slate-300 px-4 flex items-center justify-between text-[11px] font-medium shrink-0 select-none z-20 border-b border-slate-800/80">
+            {/* Left: Clock */}
+            <span className="font-bold tracking-wider text-slate-200">{time || '12:30'}</span>
+
+            {/* Center: Note 10+ Camera Punch-hole */}
+            <div className="w-3.5 h-3.5 rounded-full bg-black mx-auto ring-1 ring-slate-700/80 shrink-0" />
+
+            {/* Right: Network & Battery Icons */}
+            <div className="flex items-center gap-1.5 text-slate-300">
+              <span className="text-[10px] text-slate-400 font-semibold hidden xs:inline">4G+</span>
+              <Signal className="w-3 h-3" />
+              <Wifi className="w-3 h-3" />
+              <div className="flex items-center gap-0.5">
+                <span className="text-[10px] font-bold">98%</span>
+                <BatteryMedium className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+
+          {/* Phone Inner Workspace (Active Android App + Keyboard) */}
           <div className="flex-1 flex flex-col justify-end overflow-hidden relative bg-[#1a1c1e]">
             {children}
           </div>

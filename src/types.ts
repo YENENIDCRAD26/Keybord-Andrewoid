@@ -65,6 +65,7 @@ export type TargetAppType =
   | 'excelSheet'
   | 'messages'
   | 'browser'
-  | 'email';
+  | 'email'
+  | 'systemSettings';
 
 export type ActiveKeyboardType = 'attached' | 'native';

@@ -129,9 +129,25 @@ export const Keyboard: React.FC<KeyboardProps> = ({
   const [isCtrl, setIsCtrl] = useState(false);
   const [isAlt, setIsAlt] = useState(false);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const [longPressedKey, setLongPressedKey] = useState<string | null>(null);
 
   const backspaceTimerRef = useRef<number | null>(null);
   const backspaceIntervalRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+
+  const handleKeyTouchStart = (key: KeyDef) => {
+    setPressedKey(key.code);
+    longPressTimerRef.current = window.setTimeout(() => {
+      setLongPressedKey(key.code);
+      triggerFeedback(true);
+    }, 350);
+  };
+
+  const handleKeyTouchEnd = () => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    setLongPressedKey(null);
+    setPressedKey(null);
+  };
 
   // Trigger sound / haptic feedback
   const triggerFeedback = (isSpecial = false) => {
@@ -832,6 +848,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
 
               // Standard Character Key
               const isPressed = pressedKey === key.code;
+              const isLongPressed = longPressedKey === key.code;
               const hasCtrlShortcut = isCtrl && Boolean(CTRL_SHORTCUT_LABELS[key.code]);
               const hasAltAutoSum = isAlt && (key.code === 'PlusMinus' || key.label === '=' || key.label === '±' || key.shiftLabel === '+');
               const englishLabel = KEY_CODE_TO_ENGLISH[key.code];
@@ -839,9 +856,16 @@ export const Keyboard: React.FC<KeyboardProps> = ({
               return (
                 <button
                   key={key.code}
+                  onMouseDown={() => handleKeyTouchStart(key)}
+                  onMouseUp={handleKeyTouchEnd}
+                  onMouseLeave={handleKeyTouchEnd}
+                  onTouchStart={() => handleKeyTouchStart(key)}
+                  onTouchEnd={handleKeyTouchEnd}
                   onClick={() => handleKeyClick(key)}
-                  className={`flex-1 rounded-lg border text-slate-900 shadow-[0_2px_0_rgba(0,0,0,0.15)] active:shadow-none active:translate-y-[1px] flex flex-col items-center justify-center relative transition-all select-none hover:border-slate-400 active:scale-[0.98] min-w-[20px] sm:min-w-[28px] h-full max-h-[42px] min-h-[30px] px-0.5 ${
-                    hasCtrlShortcut
+                  className={`keyboard-key flex-1 rounded-lg border text-slate-900 shadow-[0_2px_0_rgba(0,0,0,0.15)] active:shadow-none active:translate-y-[1px] flex flex-col items-center justify-center relative transition-all select-none hover:border-slate-400 min-w-[20px] sm:min-w-[28px] h-full max-h-[42px] min-h-[30px] px-0.5 ${
+                    isLongPressed
+                      ? 'keyboard-key-longpress bg-blue-100 border-blue-600 ring-2 ring-blue-400'
+                      : hasCtrlShortcut
                       ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-300'
                       : hasAltAutoSum
                       ? 'bg-purple-50 border-purple-400 ring-1 ring-purple-300'

@@ -5,8 +5,10 @@ import {
   KeyboardSettings,
   FontItem,
   InsertModalTab,
-  ActiveKeyboardType
+  ActiveKeyboardType,
+  TargetAppType,
 } from './types';
+import { AndroidAppWorkspace } from './components/AndroidAppWorkspace';
 import { Keyboard } from './components/Keyboard';
 import { NativeKeyboard } from './components/NativeKeyboard';
 import { FeaturesDropdown } from './components/FeaturesDropdown';
@@ -43,6 +45,12 @@ export default function App() {
 
   // Active keyboard state: 'attached' (Custom 3.5cm keyboard) or 'native' (Samsung Original Keyboard)
   const [activeKeyboard, setActiveKeyboard] = useState<ActiveKeyboardType>('attached');
+
+  // Active Android application workspace ('whatsapp', 'samsungNotes', 'wordDoc', 'excelSheet', 'messages', 'telegram', 'browser', 'systemSettings')
+  const [activeTargetApp, setActiveTargetApp] = useState<TargetAppType>('whatsapp');
+
+  // Keyboard visibility state (simulating Android IME show/hide behavior)
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState<boolean>(true);
 
   // Universal IME states
   const [isUniversalImeEnabled, setIsUniversalImeEnabled] = useState<boolean>(true);
@@ -105,7 +113,7 @@ export default function App() {
   const [isOpenFileModalOpen, setIsOpenFileModalOpen] = useState<boolean>(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
   const [isInputMethodModalOpen, setIsInputMethodModalOpen] = useState<boolean>(false);
-  const [activeInputMethod, setActiveInputMethod] = useState<string>('ctrl_keyboard');
+  const [activeInputMethod, setActiveInputMethod] = useState<string>('note10_keyboard');
   const [showKeyboardButton, setShowKeyboardButton] = useState<boolean>(true);
   const [hudNotification, setHudNotification] = useState<ShortcutHudNotification | null>(null);
 
@@ -617,56 +625,76 @@ export default function App() {
       onOpenApkModal={() => setIsApkModalOpen(true)}
     >
       {/* 
-        The upper simulation area has been permanently removed.
-        Only the Keyboard components are rendered within the frame.
+        Upper & Workspace Area: Live Android Applications & System Workspace
+        (WhatsApp, Samsung Notes, Word, Excel, SMS Messages, Telegram, Google Browser, One UI System Settings)
+        Directly driven by the Samsung Note 10+ Universal IME Keyboard
       */}
+      <AndroidAppWorkspace
+        activeApp={activeTargetApp}
+        onChangeApp={setActiveTargetApp}
+        text={text}
+        onChangeText={setText}
+        cursorPos={cursorPos}
+        onCursorChange={setCursorPos}
+        isKeyboardVisible={isKeyboardVisible}
+        onToggleKeyboardVisible={() => setIsKeyboardVisible((prev) => !prev)}
+        onOpenInputMethodModal={() => setIsInputMethodModalOpen(true)}
+        onOpenApkModal={() => setIsApkModalOpen(true)}
+        onOpenFontsModal={() => setIsFontsModalOpen(true)}
+        onOpenColorModal={() => setIsColorModalOpen(true)}
+        activeFont={activeFont}
+        settings={settings}
+        isUniversalImeEnabled={isUniversalImeEnabled}
+        onToggleUniversalIme={() => setIsUniversalImeEnabled((prev) => !prev)}
+        activeKeyboard={activeKeyboard}
+        onSelectKeyboard={setActiveKeyboard}
+      />
 
       {/* 
-        Upper Area: Transparent spacer to keep keyboard at the bottom
-        as requested to "hide the top two-thirds" and show buttons only.
+        Lower Area: Samsung Galaxy Note 10+ Keyboard (Height 6.3cm / Attached & Native IME)
+        Slides smoothly up/down when text fields are focused or dismissed
       */}
-      <div className="flex-1 bg-transparent" />
-
-      {/* 
-        Lower Area: Automatic switching between Attached Keyboard (height 6.3cm) and Native Keyboard
-      */}
-      {activeKeyboard === 'attached' ? (
-        <Keyboard
-          settings={settings}
-          onUpdateSettings={updateSettings}
-          onKeyPress={handleKeyPress}
-          onBackspace={handleBackspace}
-          onEnter={handleEnter}
-          onSpace={handleSpace}
-          onTab={handleTab}
-          onArrowMove={handleArrowMove}
-          onOpenFonts={() => setIsFontsModalOpen(true)}
-          onOpenColors={() => setIsColorModalOpen(true)}
-          onOpenTools={() => setIsToolsModalOpen(true)}
-          onTogglePhoneMode={() => setIsPhoneFrame(!isPhoneFrame)}
-          isPhoneFrame={isPhoneFrame}
-          orientation={orientation}
-          onToggleOrientation={toggleOrientation}
-          suggestions={suggestions}
-          onSelectSuggestion={handleSelectSuggestion}
-          onOpenInsertModal={handleOpenInsertModal}
-          onOpenFeaturesDropdown={() => setIsFeaturesDropdownOpen(true)}
-          onToggleNativeKeyboard={toggleActiveKeyboard}
-          onShortcut={handleExecuteShortcut}
-          onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
-          isUniversalImeEnabled={isUniversalImeEnabled}
-          onToggleUniversalIme={() => setIsUniversalImeEnabled((prev) => !prev)}
-        />
-      ) : (
-        <NativeKeyboard
-          onSwitchToAttachedKeyboard={() => setActiveKeyboard('attached')}
-          onKeyPress={handleKeyPress}
-          onBackspace={handleBackspace}
-          onEnter={handleEnter}
-          onSpace={handleSpace}
-          suggestions={suggestions}
-          onSelectSuggestion={handleSelectSuggestion}
-        />
+      {isKeyboardVisible && (
+        <div className="w-full flex-shrink-0 animate-in slide-in-from-bottom duration-200">
+          {activeKeyboard === 'attached' ? (
+            <Keyboard
+              settings={settings}
+              onUpdateSettings={updateSettings}
+              onKeyPress={handleKeyPress}
+              onBackspace={handleBackspace}
+              onEnter={handleEnter}
+              onSpace={handleSpace}
+              onTab={handleTab}
+              onArrowMove={handleArrowMove}
+              onOpenFonts={() => setIsFontsModalOpen(true)}
+              onOpenColors={() => setIsColorModalOpen(true)}
+              onOpenTools={() => setIsToolsModalOpen(true)}
+              onTogglePhoneMode={() => setIsPhoneFrame(!isPhoneFrame)}
+              isPhoneFrame={isPhoneFrame}
+              orientation={orientation}
+              onToggleOrientation={toggleOrientation}
+              suggestions={suggestions}
+              onSelectSuggestion={handleSelectSuggestion}
+              onOpenInsertModal={handleOpenInsertModal}
+              onOpenFeaturesDropdown={() => setIsFeaturesDropdownOpen(true)}
+              onToggleNativeKeyboard={toggleActiveKeyboard}
+              onShortcut={handleExecuteShortcut}
+              onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
+              isUniversalImeEnabled={isUniversalImeEnabled}
+              onToggleUniversalIme={() => setIsUniversalImeEnabled((prev) => !prev)}
+            />
+          ) : (
+            <NativeKeyboard
+              onSwitchToAttachedKeyboard={() => setActiveKeyboard('attached')}
+              onKeyPress={handleKeyPress}
+              onBackspace={handleBackspace}
+              onEnter={handleEnter}
+              onSpace={handleSpace}
+              suggestions={suggestions}
+              onSelectSuggestion={handleSelectSuggestion}
+            />
+          )}
+        </div>
       )}
 
       {/* Features Dropdown Menu (قائمة منسدلة للمزايا) */}
@@ -812,12 +840,13 @@ export default function App() {
         activeMethod={activeInputMethod}
         onSelectMethod={(methodId) => {
           setActiveInputMethod(methodId);
-          if (methodId === 'ctrl_keyboard') {
+          if (methodId === 'note10_keyboard' || methodId === 'ctrl_keyboard') {
             setActiveKeyboard('attached');
+            triggerHud('Input Method', 'تم تعيين لوحة مفاتيح سامسونج نوت 10+ كلوحة افتراضية');
           } else {
             setActiveKeyboard('native');
+            triggerHud('Input Method', `تم تفعيل: ${methodId}`);
           }
-          triggerHud('Input Method', `تم اختيار طريقة الإدخال: ${methodId}`);
           setIsInputMethodModalOpen(false);
         }}
         showKeyboardButton={showKeyboardButton}

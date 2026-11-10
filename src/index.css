@@ -1,1 +1,38 @@
 @import "tailwindcss";
+
+@layer utilities {
+  .keyboard-key {
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .keyboard-key:active {
+    transform: scale(0.94) translateY(2px);
+    transition: transform 0.08s ease-out, background-color 0.08s ease-out;
+  }
+  .keyboard-key-longpress {
+    animation: keyLongPressPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+}
+
+@keyframes keyLongPressPop {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    transform: scale(1.15) translateY(-6px);
+    box-shadow: 0 10px 25px rgba(26, 115, 232, 0.4);
+    background-color: #dbeafe;
+    border-color: #2563eb;
+    z-index: 50;
+  }
+  100% {
+    transform: scale(1.08) translateY(-4px);
+    box-shadow: 0 8px 20px rgba(26, 115, 232, 0.3);
+    background-color: #eff6ff;
+    border-color: #3b82f6;
+    z-index: 50;
+  }
+}

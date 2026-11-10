@@ -23,10 +23,24 @@ export const ChooseInputMethodModal: React.FC<ChooseInputMethodModalProps> = ({
   if (!isOpen) return null;
 
   const methods = [
+    {
+      id: 'note10_keyboard',
+      label: 'لوحة مفاتيح سامسونج نوت 10+',
+      sublabel: 'لوحة مفاتيح سامسونج نوت 10+ والإنجليزية (الولايات المتحدة)',
+      isArabic: true,
+      isRecommended: true,
+      hasSettings: true,
+    },
+    {
+      id: 'samsung_keyboard',
+      label: 'لوحة مفاتيح Samsung',
+      sublabel: 'English (US) والعربية',
+      isArabic: true,
+      hasSettings: true,
+    },
     { id: 'ctrl_keyboard', label: 'Keyboard with Ctrl key', isArabic: false },
-    { id: 'samsung_voice', label: 'إدخال صوت Samsung', isArabic: true },
     { id: 'sarab_keyboard', label: 'كيبورد السراب البعيد', isArabic: true },
-    { id: 'samsung_keyboard', label: 'لوحة مفاتيح Samsung', isArabic: true, hasSettings: true },
+    { id: 'samsung_voice', label: 'إدخال صوت Samsung', isArabic: true },
     { id: 'google_voice', label: 'الكتابة بالصوت من Google', isArabic: true },
   ];
 
@@ -83,15 +97,28 @@ export const ChooseInputMethodModal: React.FC<ChooseInputMethodModalProps> = ({
                     )}
                   </div>
 
-                  {/* Label */}
-                  <span
-                    className={`text-base font-semibold truncate ${
-                      item.isArabic ? 'font-sans' : 'font-sans'
-                    } ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-800'}`}
-                    dir={item.isArabic ? 'rtl' : 'ltr'}
-                  >
-                    {item.label}
-                  </span>
+                  {/* Label & Sublabel */}
+                  <div className="flex flex-col min-w-0" dir={item.isArabic ? 'rtl' : 'ltr'}>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-sm md:text-base font-semibold truncate ${
+                          isSelected ? 'text-slate-900 font-bold' : 'text-slate-800'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                      {item.isRecommended && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">
+                          نوت 10+
+                        </span>
+                      )}
+                    </div>
+                    {item.sublabel && (
+                      <span className="text-[11px] text-slate-500 font-normal truncate">
+                        {item.sublabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Optional Gear / Settings icon */}
