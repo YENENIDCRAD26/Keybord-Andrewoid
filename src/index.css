@@ -3,16 +3,33 @@
 @layer utilities {
   .keyboard-key {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   .keyboard-key:active {
-    transform: scale(0.94) translateY(2px);
+    transform: scale(0.95) translateY(1px);
     transition: transform 0.08s ease-out, background-color 0.08s ease-out;
   }
   .keyboard-key-longpress {
-    animation: keyLongPressPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: keyLongPressPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    z-index: 40 !important;
+  }
+  .key-preview-popup {
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.35));
+    animation: previewPop 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+}
+
+@keyframes previewPop {
+  0% {
+    transform: translate(-50%, 6px) scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
   }
 }
 

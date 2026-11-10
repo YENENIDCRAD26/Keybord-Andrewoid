@@ -137,16 +137,19 @@ export const Keyboard: React.FC<KeyboardProps> = ({
 
   const handleKeyTouchStart = (key: KeyDef) => {
     setPressedKey(key.code);
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = window.setTimeout(() => {
       setLongPressedKey(key.code);
       triggerFeedback(true);
-    }, 350);
+    }, 240);
   };
 
   const handleKeyTouchEnd = () => {
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-    setLongPressedKey(null);
-    setPressedKey(null);
+    setTimeout(() => {
+      setLongPressedKey(null);
+      setPressedKey(null);
+    }, 60);
   };
 
   // Trigger sound / haptic feedback
@@ -393,14 +396,47 @@ export const Keyboard: React.FC<KeyboardProps> = ({
 
   const isLandscape = orientation === 'landscape';
 
+  // Dynamic Samsung Galaxy Note 10+ keyboard height supporting settings.keyboardSize
+  const getKeyboardHeight = () => {
+    if (isLandscape) {
+      switch (settings.keyboardSize) {
+        case 'compact':
+          return '220px';
+        case 'large':
+          return '285px';
+        case 'normal':
+        case 'samsungDefault':
+        default:
+          return '250px';
+      }
+    } else {
+      // Portrait Mode - Prominent enlarged Samsung One UI dimensions
+      switch (settings.keyboardSize) {
+        case 'compact':
+          return '320px';
+        case 'large':
+          return '410px';
+        case 'normal':
+          return '350px';
+        case 'samsungDefault':
+        default:
+          return '375px'; // Enlarged, spacious Note 10+ proportion
+      }
+    }
+  };
+
+  const keyBaseHeightClass = isLandscape
+    ? 'h-full max-h-[46px] min-h-[34px] sm:max-h-[50px] sm:min-h-[38px]'
+    : 'h-full max-h-[56px] min-h-[40px] sm:max-h-[62px] sm:min-h-[46px]';
+
   return (
     <div
       id="android-keyboard-root"
-      className="bg-[#d5dbe3] border-t-2 border-slate-300 shadow-2xl select-none flex flex-col font-sans transition-all shrink-0 w-full overflow-hidden"
+      className="bg-[#d5dbe3] border-t-2 border-slate-300 shadow-2xl select-none flex flex-col font-sans transition-all shrink-0 w-full overflow-visible relative"
       style={{
-        height: '6.3cm',
-        minHeight: '6.3cm',
-        maxHeight: '6.3cm',
+        height: getKeyboardHeight(),
+        minHeight: getKeyboardHeight(),
+        maxHeight: getKeyboardHeight(),
       }}
       dir="ltr"
     >
@@ -597,7 +633,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
           className="flex items-center justify-center gap-1 py-0.5 px-1.5 bg-slate-200/90 border-b border-slate-300 overflow-x-auto scrollbar-none shrink-0"
           dir="rtl"
         >
-          <span className="text-[9px] font-bold text-slate-500 pl-1 shrink-0">تشكيل:</span>
+          <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 pl-1 shrink-0">تشكيل:</span>
           {TASHKEEL_MARKS.map((item, idx) => (
             <button
               key={idx}
@@ -606,7 +642,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                 onKeyPress(item.char);
               }}
               title={item.name}
-              className="min-w-[24px] sm:min-w-[28px] h-6 px-1 bg-white hover:bg-blue-50 hover:text-blue-700 border border-slate-300 rounded text-sm font-bold flex items-center justify-center shadow-[0_1px_0_rgba(0,0,0,0.12)] active:shadow-none active:scale-95 transition-all text-slate-900 select-none"
+              className="min-w-[28px] sm:min-w-[34px] h-7 sm:h-8 px-1.5 bg-white hover:bg-blue-50 hover:text-blue-700 border border-slate-300 rounded-lg text-base font-bold flex items-center justify-center shadow-[0_1px_0_rgba(0,0,0,0.12)] active:shadow-none active:scale-95 transition-all text-slate-900 select-none cursor-pointer"
             >
               {item.char}
             </button>
@@ -626,10 +662,10 @@ export const Keyboard: React.FC<KeyboardProps> = ({
 
       {/* 4. KEYBOARD KEYS MATRIX - Fitted comfortably to 6.3cm */}
       <div
-        className="flex-1 min-h-0 p-1 flex flex-col justify-between bg-[#dbe1e9] max-w-full overflow-hidden gap-0.5"
+        className="flex-1 min-h-0 p-1 flex flex-col justify-between bg-[#dbe1e9] max-w-full overflow-visible gap-0.5 relative z-10"
       >
         {rows.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex-1 min-h-0 flex items-center justify-center gap-0.5 w-full my-[0.5px]">
+          <div key={rowIndex} className="flex-1 min-h-0 flex items-center justify-center gap-0.5 w-full my-[0.5px] overflow-visible relative">
             {row.map((key) => {
               // Custom rendering for Backspace / مسح
               if (key.code === 'Backspace') {
@@ -642,11 +678,11 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                     onMouseLeave={handleBackspaceEnd}
                     onTouchStart={handleBackspaceStart}
                     onTouchEnd={handleBackspaceEnd}
-                    className="flex-none px-1.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-700 hover:bg-rose-100 active:bg-rose-200 shadow-[0_2px_0_#fda4af] active:shadow-none active:translate-y-[1px] flex items-center justify-center gap-0.5 transition-all active:scale-[0.98] min-w-[38px] sm:min-w-[52px] h-full max-h-[42px] min-h-[30px]"
+                    className={`flex-none px-2 rounded-xl sm:rounded-2xl bg-rose-50 border border-rose-300 text-rose-700 hover:bg-rose-100 active:bg-rose-200 shadow-[0_2px_0_#fda4af] active:shadow-none active:translate-y-[1px] flex items-center justify-center gap-1 transition-all active:scale-[0.98] min-w-[42px] sm:min-w-[58px] ${keyBaseHeightClass}`}
                     title="حذف (مسح)"
                   >
-                    <Delete className="w-4 h-4 stroke-[2]" />
-                    <span className="text-[10px] font-bold hidden xs:inline">مسح</span>
+                    <Delete className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
+                    <span className="text-[11px] sm:text-xs font-bold hidden xs:inline">مسح</span>
                   </button>
                 );
               }
@@ -658,11 +694,11 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                     key={key.code}
                     id="kb-key-enter"
                     onClick={() => handleKeyClick(key)}
-                    className="flex-none px-2 rounded-lg bg-[#1a73e8] border border-blue-700 text-white hover:bg-blue-700 active:bg-blue-800 shadow-[0_2px_0_#1557b0] active:shadow-none active:translate-y-[1px] flex items-center justify-center gap-1 transition-all active:scale-[0.98] font-bold min-w-[42px] sm:min-w-[60px] h-full max-h-[42px] min-h-[30px]"
+                    className={`flex-none px-2.5 rounded-xl sm:rounded-2xl bg-[#1a73e8] border border-blue-700 text-white hover:bg-blue-700 active:bg-blue-800 shadow-[0_2px_0_#1557b0] active:shadow-none active:translate-y-[1px] flex items-center justify-center gap-1 transition-all active:scale-[0.98] font-bold min-w-[46px] sm:min-w-[64px] ${keyBaseHeightClass}`}
                     title="إدخال (Enter)"
                   >
-                    <CornerDownLeft className="w-4 h-4 stroke-[2.5]" />
-                    <span className="text-[10px] font-bold hidden xs:inline">Enter</span>
+                    <CornerDownLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                    <span className="text-[11px] sm:text-xs font-bold hidden xs:inline">Enter</span>
                   </button>
                 );
               }
@@ -674,7 +710,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                     key={key.code}
                     id="kb-key-alt"
                     onClick={() => handleKeyClick(key)}
-                    className={`rounded-lg border font-bold text-[10px] sm:text-[11px] shadow-[0_2px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[30px] sm:min-w-[40px] h-full max-h-[42px] min-h-[30px] px-1 ${
+                    className={`rounded-xl sm:rounded-2xl border font-bold text-xs sm:text-sm shadow-[0_2px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[34px] sm:min-w-[46px] ${keyBaseHeightClass} px-1.5 ${
                       isAlt
                         ? 'bg-purple-800 text-white border-purple-900 ring-2 ring-purple-400'
                         : 'bg-[#9333ea] text-white border-purple-700 hover:bg-purple-700'
@@ -692,10 +728,10 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                     key={key.code}
                     id="kb-key-lang-toggle"
                     onClick={() => handleKeyClick(key)}
-                    className="rounded-lg border border-emerald-300 bg-[#d1fae5] hover:bg-emerald-200 text-emerald-950 font-bold text-[10px] sm:text-xs shadow-[0_2px_0_#6ee7b7] active:shadow-none active:translate-y-[1px] flex items-center justify-center gap-0.5 transition-all active:scale-[0.98] min-w-[36px] sm:min-w-[48px] h-full max-h-[42px] min-h-[30px] px-1"
+                    className={`rounded-xl sm:rounded-2xl border border-emerald-300 bg-[#d1fae5] hover:bg-emerald-200 text-emerald-950 font-bold text-xs sm:text-sm shadow-[0_2px_0_#6ee7b7] active:shadow-none active:translate-y-[1px] flex items-center justify-center gap-1 transition-all active:scale-[0.98] min-w-[40px] sm:min-w-[54px] ${keyBaseHeightClass} px-1.5`}
                     title="تغيير لغة الإدخال"
                   >
-                    <Globe className="w-3.5 h-3.5 text-emerald-700" />
+                    <Globe className="w-4 h-4 text-emerald-700" />
                     <span>{lang === 'ar' ? 'EN' : 'عربي'}</span>
                   </button>
                 );
@@ -708,7 +744,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                     key={key.code}
                     id="kb-key-space"
                     onClick={() => handleKeyClick(key)}
-                    className="flex-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.99] h-full max-h-[42px] min-h-[30px]"
+                    className={`flex-1 rounded-xl sm:rounded-2xl bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm md:text-base shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.99] ${keyBaseHeightClass}`}
                   >
                     {lang === 'ar' ? 'مسافة • Space' : 'Space'}
                   </button>
@@ -720,27 +756,27 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                 return (
                   <div
                     key={key.code}
-                    className="flex flex-col gap-0.5 justify-between w-6 sm:w-8 h-full max-h-[42px] min-h-[30px]"
+                    className={`flex flex-col gap-0.5 justify-between w-7 sm:w-9 ${keyBaseHeightClass}`}
                   >
                     <button
                       onClick={() => {
                         triggerFeedback(true);
                         onArrowMove('up');
                       }}
-                      className="w-full flex-1 rounded-md bg-white border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-slate-800 shadow-[0_1px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98]"
+                      className="w-full flex-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-slate-800 shadow-[0_1px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98]"
                       title="سهم لأعلى"
                     >
-                      <ArrowUp className="w-3 h-3" />
+                      <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => {
                         triggerFeedback(true);
                         onArrowMove('down');
                       }}
-                      className="w-full flex-1 rounded-md bg-white border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-slate-800 shadow-[0_1px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98]"
+                      className="w-full flex-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-slate-800 shadow-[0_1px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98]"
                       title="سهم لأسفل"
                     >
-                      <ArrowDown className="w-3 h-3" />
+                      <ArrowDown className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 );
@@ -755,10 +791,10 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                       triggerFeedback(true);
                       onArrowMove('left');
                     }}
-                    className="rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 flex items-center justify-center shadow-[0_2px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98] w-6 sm:w-8 h-full max-h-[42px] min-h-[30px]"
+                    className={`rounded-xl sm:rounded-2xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 flex items-center justify-center shadow-[0_2px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98] w-7 sm:w-9 ${keyBaseHeightClass}`}
                     title="سهم لليسار"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 );
               }
@@ -772,10 +808,10 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                       triggerFeedback(true);
                       onArrowMove('right');
                     }}
-                    className="rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 flex items-center justify-center shadow-[0_2px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98] w-6 sm:w-8 h-full max-h-[42px] min-h-[30px]"
+                    className={`rounded-xl sm:rounded-2xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 flex items-center justify-center shadow-[0_2px_0_rgba(0,0,0,0.15)] active:shadow-none active:scale-[0.98] w-7 sm:w-9 ${keyBaseHeightClass}`}
                     title="سهم لليمين"
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 );
               }
@@ -786,7 +822,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                   <button
                     key={key.code}
                     onClick={() => handleKeyClick(key)}
-                    className={`flex-none rounded-lg border font-bold text-[10px] sm:text-xs shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[32px] sm:min-w-[42px] h-full max-h-[42px] min-h-[30px] ${
+                    className={`flex-none rounded-xl sm:rounded-2xl border font-bold text-xs sm:text-sm shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[36px] sm:min-w-[48px] ${keyBaseHeightClass} ${
                       isShift
                         ? 'bg-blue-100 border-blue-400 text-blue-700 ring-1 ring-blue-300'
                         : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
@@ -803,7 +839,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                   <button
                     key={key.code}
                     onClick={() => handleKeyClick(key)}
-                    className={`flex-none rounded-lg border font-bold text-[10px] sm:text-xs shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[32px] sm:min-w-[42px] h-full max-h-[42px] min-h-[30px] ${
+                    className={`flex-none rounded-xl sm:rounded-2xl border font-bold text-xs sm:text-sm shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[36px] sm:min-w-[48px] ${keyBaseHeightClass} ${
                       isCaps
                         ? 'bg-amber-100 border-amber-400 text-amber-800 ring-1 ring-amber-300'
                         : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
@@ -820,7 +856,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                   <button
                     key={key.code}
                     onClick={() => handleKeyClick(key)}
-                    className="flex-none rounded-lg bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 font-bold text-[10px] sm:text-xs shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[28px] sm:min-w-[38px] h-full max-h-[42px] min-h-[30px]"
+                    className={`flex-none rounded-xl sm:rounded-2xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 font-bold text-xs sm:text-sm shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[32px] sm:min-w-[44px] ${keyBaseHeightClass}`}
                   >
                     Tab
                   </button>
@@ -834,7 +870,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                     key={key.code}
                     id="kb-key-ctrl"
                     onClick={() => handleKeyClick(key)}
-                    className={`rounded-lg border font-bold text-[10px] sm:text-xs shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[30px] sm:min-w-[40px] h-full max-h-[42px] min-h-[30px] px-1 ${
+                    className={`rounded-xl sm:rounded-2xl border font-bold text-xs sm:text-sm shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex items-center justify-center transition-all active:scale-[0.98] min-w-[34px] sm:min-w-[46px] ${keyBaseHeightClass} px-1.5 ${
                       isCtrl
                         ? 'bg-blue-600 text-white border-blue-700 ring-2 ring-blue-400 font-extrabold animate-pulse'
                         : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
@@ -853,6 +889,16 @@ export const Keyboard: React.FC<KeyboardProps> = ({
               const hasAltAutoSum = isAlt && (key.code === 'PlusMinus' || key.label === '=' || key.label === '±' || key.shiftLabel === '+');
               const englishLabel = KEY_CODE_TO_ENGLISH[key.code];
 
+              // Calculate active display character
+              const displayChar = (() => {
+                const baseLabel = lang === 'ar'
+                  ? (isShift && key.shiftLabel ? key.shiftLabel : key.label)
+                  : (isShift || isCaps ? key.label.toUpperCase() : key.label.toLowerCase());
+                return (numberFormat === 'arabic' && WESTERN_TO_ARABIC_DIGITS[baseLabel])
+                  ? WESTERN_TO_ARABIC_DIGITS[baseLabel]
+                  : baseLabel;
+              })();
+
               return (
                 <button
                   key={key.code}
@@ -862,7 +908,7 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                   onTouchStart={() => handleKeyTouchStart(key)}
                   onTouchEnd={handleKeyTouchEnd}
                   onClick={() => handleKeyClick(key)}
-                  className={`keyboard-key flex-1 rounded-lg border text-slate-900 shadow-[0_2px_0_rgba(0,0,0,0.15)] active:shadow-none active:translate-y-[1px] flex flex-col items-center justify-center relative transition-all select-none hover:border-slate-400 min-w-[20px] sm:min-w-[28px] h-full max-h-[42px] min-h-[30px] px-0.5 ${
+                  className={`keyboard-key flex-1 rounded-xl sm:rounded-2xl border text-slate-900 shadow-[0_2px_0_rgba(0,0,0,0.18)] active:shadow-none active:translate-y-[1px] flex flex-col items-center justify-center relative transition-all select-none hover:border-slate-400 min-w-[22px] sm:min-w-[32px] ${keyBaseHeightClass} px-0.5 ${
                     isLongPressed
                       ? 'keyboard-key-longpress bg-blue-100 border-blue-600 ring-2 ring-blue-400'
                       : hasCtrlShortcut
@@ -877,6 +923,43 @@ export const Keyboard: React.FC<KeyboardProps> = ({
                     fontFamily: lang === 'ar' ? settings.fontFamily : 'inherit',
                   }}
                 >
+                  {/* Magnified Character Long-press Preview Popup (نافذة منبثقة مصغرة فوق المفتاح أثناء الضغط المطول) */}
+                  {isLongPressed && (
+                    <div
+                      className="key-preview-popup absolute -top-16 left-1/2 z-[100] pointer-events-none flex flex-col items-center select-none"
+                      dir="rtl"
+                    >
+                      <div className="bg-slate-900 text-white rounded-2xl border-2 border-blue-500 shadow-2xl px-3.5 py-2 min-w-[58px] min-h-[60px] flex flex-col items-center justify-center backdrop-blur-md ring-4 ring-blue-500/20">
+                        <span
+                          className="text-2xl sm:text-3xl font-extrabold text-white leading-none drop-shadow-md"
+                          style={{ fontFamily: lang === 'ar' ? settings.fontFamily : 'inherit' }}
+                        >
+                          {displayChar}
+                        </span>
+                        {key.shiftLabel && lang === 'ar' && (
+                          <span className="text-[10px] text-amber-300 font-bold mt-1 border-t border-slate-700/80 pt-0.5 w-full text-center">
+                            {key.shiftLabel}
+                          </span>
+                        )}
+                        {englishLabel && lang === 'ar' && (
+                          <span className="text-[9px] text-blue-300 font-mono font-bold leading-none mt-0.5">
+                            {englishLabel}
+                          </span>
+                        )}
+                        {lang === 'en' && key.arSub && (
+                          <span
+                            className="text-[11px] text-blue-300 font-bold leading-none mt-0.5"
+                            style={{ fontFamily: settings.fontFamily }}
+                          >
+                            {key.arSub}
+                          </span>
+                        )}
+                      </div>
+                      {/* Triangle Pointer */}
+                      <div className="w-0 h-0 border-x-[7px] border-x-transparent border-t-[8px] border-t-slate-900 -mt-[1px]" />
+                    </div>
+                  )}
+
                   {/* Shortcut badge if Ctrl is active */}
                   {hasCtrlShortcut && (
                     <span className="absolute -top-1.5 left-0 right-0 mx-auto text-[7px] bg-blue-600 text-white font-bold rounded-xs px-0.5 pointer-events-none truncate text-center shadow-xs max-w-[96%] leading-tight">
@@ -893,34 +976,27 @@ export const Keyboard: React.FC<KeyboardProps> = ({
 
                   {/* Shift label in corner if available */}
                   {!hasCtrlShortcut && !hasAltAutoSum && lang === 'ar' && key.shiftLabel && (
-                    <span className="absolute top-0.5 right-1 text-[8px] text-slate-400 font-semibold leading-none pointer-events-none">
+                    <span className="absolute top-0.5 right-1.5 text-[9px] sm:text-[10px] text-slate-400 font-bold leading-none pointer-events-none">
                       {key.shiftLabel}
                     </span>
                   )}
 
                   {/* Key content container: Main label + Subscript label */}
                   <div className="flex flex-col items-center justify-center leading-none w-full h-full relative pt-0.5">
-                    <span className={`text-[12.5px] sm:text-[14px] font-bold text-slate-900 leading-tight ${isPressed ? 'scale-110 transition-transform' : ''}`}>
-                      {(() => {
-                        const baseLabel = lang === 'ar'
-                          ? (isShift && key.shiftLabel ? key.shiftLabel : key.label)
-                          : (isShift || isCaps ? key.label.toUpperCase() : key.label.toLowerCase());
-                        return (numberFormat === 'arabic' && WESTERN_TO_ARABIC_DIGITS[baseLabel])
-                          ? WESTERN_TO_ARABIC_DIGITS[baseLabel]
-                          : baseLabel;
-                      })()}
+                    <span className={`text-[14.5px] sm:text-[17px] md:text-[19px] font-bold text-slate-900 leading-tight ${isPressed ? 'scale-110 transition-transform' : ''}`}>
+                      {displayChar}
                     </span>
 
                     {/* Arabic Subscript label in English mode */}
                     {lang === 'en' && key.arSub && !hasCtrlShortcut && !hasAltAutoSum && (
-                      <span className="text-[8px] sm:text-[8.5px] text-slate-500 font-bold leading-none mt-0.5 pointer-events-none select-none opacity-85" style={{ fontFamily: settings.fontFamily }}>
+                      <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold leading-none mt-0.5 pointer-events-none select-none opacity-90" style={{ fontFamily: settings.fontFamily }}>
                         {key.arSub}
                       </span>
                     )}
 
                     {/* English Subscript label in Arabic mode */}
                     {lang === 'ar' && englishLabel && !hasCtrlShortcut && !hasAltAutoSum && (
-                      <span className="text-[8px] sm:text-[8.5px] text-slate-500 font-bold uppercase tracking-tighter leading-none mt-0.5 pointer-events-none select-none opacity-85">
+                      <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-tight leading-none mt-0.5 pointer-events-none select-none opacity-90">
                         {englishLabel}
                       </span>
                     )}

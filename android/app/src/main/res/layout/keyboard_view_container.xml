@@ -7,5 +7,5 @@
     android:layout_alignParentBottom="true"
     android:keyBackground="@android:drawable/btn_default"
     android:keyTextColor="#000000"
-    android:keyTextSize="18sp"
-    android:labelTextSize="14sp" />
+    android:keyTextSize="22sp"
+    android:labelTextSize="16sp" />
